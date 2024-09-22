@@ -1,0 +1,37 @@
+.custom-scrollbar::-webkit-scrollbar {
+    width: 12px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #2F2F2F; 
+    border-radius: 10px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #444654; 
+    border-radius: 10px;
+    border: 3px solid #2F2F2F; 
+  }
+  
+  .custom-scrollbar {
+    scrollbar-width: 10px;
+    scrollbar-color: #444654 #2F2F2F;
+  }
+
+  .custom-scrollbar a{
+    color: white;
+    text-decoration: underline;
+  }
+
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  .rotating-star {
+    animation: rotate 2s linear infinite;
+  }
