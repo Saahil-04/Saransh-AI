@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Request, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, ParseIntPipe, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
@@ -9,16 +9,17 @@ export class ChatController {
 
     @Post()
     @UseGuards(JwtAuthGuard)
-    async saveMessage(@Request() req, @Body() body: { text: string }) {
+    async saveMessage(@Request() req, @Body() body: { text: string; sessionId:number }) {
         const userId = req.user?.userId || null;
-        return this.chatService.saveMessage(userId, body.text, 'user');
+        const {text,sessionId} = body
+        return this.chatService.saveMessage(userId,sessionId,text, 'user');
     }
 
     @Get('history')
     @UseGuards(JwtAuthGuard)
-    async getChatHistory(@Request() req) {
-    
-        return this.chatService.getChatHistory(req.user.userId);
+    async getChatHistory(@Request() req,@Query('sessionId', ParseIntPipe) sessionId: number) {
+        // const {sessionId} = body;
+        return this.chatService.getChatHistory(req.user.userId,sessionId);
     }
 
 }

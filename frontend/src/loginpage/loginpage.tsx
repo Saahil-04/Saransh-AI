@@ -36,7 +36,9 @@ function LoginPage() {
       console.log("Login response:", response.data);
       // Store the username in local storage
       const { access_token } = response.data;
+      const {sessionId} = response.data;
       localStorage.setItem('token', access_token);
+      localStorage.setItem('sessionId',sessionId);
       localStorage.setItem("username", username);
       navigate("/home");
       // Handle successful login here (e.g., store token, redirect to chat page)

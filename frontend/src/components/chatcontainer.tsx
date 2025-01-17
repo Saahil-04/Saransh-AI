@@ -11,7 +11,13 @@ const ChatContainer: React.FC = () => {
   useEffect(() => {
     // Check if user is logged in
     const token = localStorage.getItem("token");
+    const sessionId = localStorage.getItem("sessionId");
     setIsLoggedIn(!!token);
+
+    if (sessionId) {
+      setCurrentSession(parseInt(sessionId, 10))
+    }
+
     console.log("loginstate", isLoggedIn);
     console.log("token ", localStorage.getItem("token"));
     console.log("username ", localStorage.getItem("username"));
@@ -23,21 +29,34 @@ const ChatContainer: React.FC = () => {
   };
 
   const handleSidebarToggle = (isOpen: boolean) => {
-    setSidebarWidth(isOpen ? '50%' : '5%');
+    setSidebarWidth(isOpen ? '20%' : '5%');
   };
 
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+  }
+
   return (
-    <Box sx={{ display: 'flex', height: '100vh' }}>
+    <Box sx={{ display: 'flex', height: '100vh', overflow:"auto"}}>
       {isLoggedIn && (
-        <Box sx={{ width: sidebarWidth, transition: 'width 0.3s' }}>
-          <Sidebar onSessionSelect={handleSessionSelect} onToggle={handleSidebarToggle} />
+        <Box sx={{
+          width: sidebarWidth, // Dynamically adjust width
+          minWidth: sidebarWidth, // Ensure it doesn’t shrink below this width
+          maxWidth: sidebarWidth, // Prevent it from exceeding this width
+          transition: '0.5s',
+          overflowY: 'auto', // Add vertical scrollbar if content overflows
+        }}
+        >
+          < Sidebar onSessionSelect={handleSessionSelect} onToggle={handleSidebarToggle} />
         </Box>
-      )}
-      <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
-        <Chat currentSession={currentSession} />
+      )
+      }
+      <Box sx={{ flexGrow: 1, /*overflow: 'auto' */ }}>
+        <Chat currentSession={currentSession} onLogOut={handleLogout} />
       </Box>
-    </Box>
+    </Box >
   );
 };
 
 export default ChatContainer;
+

@@ -2,262 +2,266 @@ import React from "react";
 import {
   Container,
   Box,
-  Paper,
-  Button,
-  Typography,
   AppBar,
   Toolbar,
+  Typography,
+  Button,
+  Grid,
+  Paper,
   Avatar,
 } from "@mui/material";
+import TextSnippetIcon from "@mui/icons-material/TextSnippet";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import ImageIcon from "@mui/icons-material/Image";
+import LinkIcon from "@mui/icons-material/Link";
 import ArrowOutwardIcon from "@mui/icons-material/ArrowOutward";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import { Link } from "react-router-dom";
+import TipsAndUpdatesIcon from '@mui/icons-material/TipsAndUpdates';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import ForumIcon from '@mui/icons-material/Forum';
 import { FaRobot } from "react-icons/fa";
-import { blue } from "@mui/material/colors";
 import { useNavigate } from "react-router-dom";
 
-const styles = {
-  section: {
-    padding: "60px 20px",
-    backgroundColor: "#212121",
-    color: "white",
-    textAlign: "center" as const,
-  },
-  features: {
-    padding: "40px 20px",
-    backgroundColor: "#444654",
-    color: "white",
-    borderRadius: "25px",
-  },
-  sectionTitle: {
-    display: "flex",
-    fontSize: "2.5rem",
-    marginBottom: "40px",
-    fontWeight: "bold",
-    justifyContent: "center",
-    // textAlign:'center'
-  },
-  introsec: {
-    // display:'flex',
-    // justifyContent:"center",
-    // textAlign:'center',
-    maxWidth: "50vw",
-    margin: "0px auto",
-    paddingTop: "50px",
-  },
-  featureCards: {
-    display: "flex",
-    justifyContent: "space-around",
-    flexWrap: "wrap" as const,
-  },
-  card: {
-    backgroundColor: "#343541",
-    padding: "20px",
-    borderRadius: "10px",
-    width: "300px",
-    marginBottom: "20px",
-    textAlign: "center" as const,
-  },
-  cardTitle: {
-    fontSize: "1.5rem",
-    marginTop: "10px",
-  },
-  cardText: {
-    fontSize: "1rem",
-    marginTop: "10px",
-  },
-  icon: {
-    fontSize: "3rem",
-    color: "#A855F7",
-  },
-  footer: {
-    padding: "20px",
-    backgroundColor: "#212121",
-    color: "white",
-    textAlign: "center" as const,
-  },
-  footerText: {
-    fontSize: "1rem",
-  },
-};
+const FeatureCard = ({ icon: Icon, title, text }: { icon: React.ElementType; title: string; text: string }) => (
+  <Paper
+    elevation={3}
+    sx={{
+      backgroundColor: "#343541",
+      padding: "20px",
+      borderRadius: "12px",
+      textAlign: "center",
+      transition: "transform 0.3s ease, box-shadow 0.3s ease",
+      "&:hover": {
+        transform: "scale(1.05)",
+        boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+      },
+    }}
+  >
+    <Icon style={{ fontSize: "3rem", color: "#A855F7" }} />
+    <Typography variant="h6" sx={{ marginTop: 2, color: "white" }}>
+      {title}
+    </Typography>
+    <Typography variant="body2" sx={{ marginTop: 1, color: "rgba(255, 255, 255, 0.8)" }}>
+      {text}
+    </Typography>
+  </Paper>
+);
 
 const IntroPage = () => {
   const navigate = useNavigate();
 
-  const handleClick = () => {
-    navigate("/home");
-  };
   return (
-    <>
-      <AppBar position="static"
-        style={{
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+        overflow: "auto",
+        backgroundColor: "#212121",
+        "&::-webkit-scrollbar": {
+          width: "10px",
+        },
+        "&::-webkit-scrollbar-track": {
+          backgroundColor: "#2f2f2f",
+        },
+        "&::-webkit-scrollbar-thumb": {
+          backgroundColor: "#444654",
+          borderRadius: "10px",
+        },
+        scrollbarWidth: "thin",
+        scrollbarColor: "#444654 #2f2f2f",
+      }}
+    >
+      <AppBar
+        position="static"
+        sx={{
           backgroundColor: "#212121",
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center"
+          boxShadow: "none",
+
         }}
       >
-        <Toolbar>
-          <Typography variant="h5">
+        <Toolbar
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Typography variant="h5" sx={{ display: "flex", alignItems: "center", color: "white" }}>
             SaranshAI
-            <AutoAwesomeIcon sx={{ paddingLeft: "5px" }} />
+            <AutoAwesomeIcon sx={{ marginLeft: 1, color: "#A855F7" }} />
           </Typography>
-        </Toolbar>
-        <Toolbar>
-        <Button
-         variant="contained"
-          color="inherit"
-          onClick={() => navigate('/register')}
-          sx={{
-            marginRight: "10px" ,
-            backgroundColor: "rgba(168,85,247,1)",
-            "&:hover": {
-              backgroundColor: "rgba(168,85,247,0.8)",
-            },
-          }}
-        >
-          Sign up!
-        </Button>
-        <Button
-         variant="contained"
-          color="inherit"
-          onClick={() => navigate('/login')}
-          sx={{
-            marginRight: "10px" ,
-            backgroundColor: "rgba(168,85,247,1)",
-            "&:hover": {
-              backgroundColor: "rgba(168,85,247,0.8)",
-            },
-          }}
-        >
-          Login
-        </Button>
+          <Box>
+            <Button
+              variant="contained"
+              sx={{
+                marginRight: 2,
+                backgroundColor: "#A855F7",
+                "&:hover": { backgroundColor: "#8c4dd5" },
+              }}
+              onClick={() => navigate("/register")}
+            >
+              Sign Up
+            </Button>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "#A855F7",
+                "&:hover": { backgroundColor: "#8c4dd5" },
+              }}
+              onClick={() => navigate("/login")}
+            >
+              Login
+            </Button>
+          </Box>
         </Toolbar>
       </AppBar>
-      <Container
-        style={{
-          backgroundColor: "#212121",
-          paddingTop: "20px",
-          maxWidth: "100vw",
-        }}
-      >
-        <Box style={styles.section}>
-          <Box
+
+      <Container maxWidth="xl" sx={{ flex: 1, padding: 4 }}>
+        <Box textAlign="center" sx={{ marginBottom: 6 }}>
+          <Typography
+            variant="h3"
             sx={{
-              textAlign: "center",
-              color: "white",
-              padding: "20px",
-              borderRadius: "10px",
-              margin: "0 auto",
-              fontSize: "1rem",
-              // width: '%',
+              fontWeight: "bold",
               background:
                 "linear-gradient(90deg, rgba(168,85,247,1) 0%, rgba(255,255,255,1) 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
+              marginBottom: 2,
             }}
           >
-            <Typography variant="h1" style={styles.sectionTitle}>
-              Welcome to SaranshAI
-            </Typography>
-          </Box>
+            Welcome to SaranshAI
+          </Typography>
           <Typography
-            variant="h5"
-            style={{ margin: "20px 0", color: "rgba(255, 255, 255, 0.7)" }}
+            variant="h6"
+            sx={{ color: "rgba(255,255,255,0.7)", maxWidth: "600px", margin: "0 auto" }}
           >
             Experience the future of AI-driven conversations.
           </Typography>
-
           <Button
             variant="contained"
-            color="secondary"
-            onClick={handleClick}
+            onClick={() => navigate("/home")}
             sx={{
-              textAlign: "center",
+              marginTop: 4,
+              padding: "12px 36px",
+              background: "linear-gradient(90deg, rgba(168,85,247,1) 0%, rgba(255,255,255,1) 100%)",
+              backgroundSize: "200% 200%", // Extend gradient for movement
               color: "white",
-              padding: "20px",
-              borderRadius: "10px",
-              margin: "0 auto",
-              fontSize: "1rem",
-              // width: '%',
-              background:
-                "linear-gradient(90deg, rgba(168,85,247,1) 0%, rgba(255,255,255,1) 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-            style={{
-              borderRadius: "25px",
-              padding: "10px 20px",
+              fontSize: "1.2rem",
+              borderRadius: "30px",
               textTransform: "none",
+              transition: "background 0.5s ease-in-out, color 0.3s ease",
+              "&:hover": {
+                animation: "gradientShift 1s ease-in-out", // Apply keyframes animation
+                background: "linear-gradient(90deg, rgba(255,255,255,1) 0%, rgba(168,85,247,1) 100%)",
+                backgroundSize: "100% 150%", // Keeps the gradient in motion
+                color: "#a855f7",
+              },
+              "@keyframes gradientShift": {
+                "0%": { backgroundPosition: "0% 50%" },
+                "100%": { backgroundPosition: "100% 50%" },
+              },
             }}
           >
             Try SaranshAI
-            <ArrowOutwardIcon
-              sx={{ fontSize: "18px", paddingLeft: "5px" }}
-            ></ArrowOutwardIcon>
+            <ArrowOutwardIcon sx={{ marginLeft: 1 }} />
           </Button>
-          <div style={styles.introsec}>
-            <Typography
-              variant="body1"
-              paragraph
-              sx={{ fontSize: "20px", textAlign: "left" }}
-            >
-              We’ve developed an advanced AI called SaranshAI, designed to
-              provide precise summaries of entire web pages at the click of a
-              link. SaranshAI interacts in a conversational way, making it easy
-              for you to extract key information from any webpage. Whether
-              you're browsing through articles, research papers, or lengthy
-              reports, SaranshAI helps you save time by providing concise,
-              accurate summaries.
-            </Typography>
-            <Typography
-              variant="body1"
-              paragraph
-              sx={{ fontSize: "20px", textAlign: "left" }}
-            >
-              SaranshAI isn't just about summarization; it engages in
-              intelligent dialogue, answering follow-up questions and refining
-              its responses based on context. During this research preview,
-              SaranshAI is available for free to gather user feedback and
-              understand its strengths and areas for improvement.
-            </Typography>
-          </div>
-        </Box>
 
-        <section style={styles.features} id="features">
-          <h2 style={styles.sectionTitle}>Features</h2>
-          <div style={styles.featureCards}>
-            <div style={styles.card}>
-              <FaRobot style={styles.icon} />
-              <h3 style={styles.cardTitle}>Smart AI</h3>
-              <p style={styles.cardText}>
-                Engage in intelligent conversations with AI that learns from
-                every interaction.
-              </p>
-            </div>
-            <div style={styles.card}>
-              <FaRobot style={styles.icon} />
-              <h3 style={styles.cardTitle}>Fast Response</h3>
-              <p style={styles.cardText}>
-                Get real-time answers and assistance, tailored to your needs.
-              </p>
-            </div>
-            <div style={styles.card}>
-              <FaRobot style={styles.icon} />
-              <h3 style={styles.cardTitle}>Conversational</h3>
-              <p style={styles.cardText}>
-                Enjoy natural, human-like conversations with an AI that
-                understands context.
-              </p>
-            </div>
-          </div>
+
+        </Box>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            flexWrap: "wrap",
+            gap: 4,
+            marginTop: 4,
+          }}
+        >
+          {/* Feature Cards */}
+          {[
+            { icon: <TextSnippetIcon fontSize="large" />, title: "Text Summarization", description: "Summarize long text into concise, meaningful insights." },
+            { icon: <PictureAsPdfIcon fontSize="large" />, title: "PDF Summarization", description: "Extract key points from complex PDF documents." },
+            { icon: <ImageIcon fontSize="large" />, title: "Image Analysis", description: "Analyze and summarize text from images with ease." },
+            { icon: <LinkIcon fontSize="large" />, title: "Website Links", description: "Fetch and summarize content from website URLs." },
+          ].map((feature, index) => (
+            <Box
+              key={index}
+              sx={{
+                backgroundColor: "#292929",
+                padding: "20px",
+                borderRadius: "16px",
+                textAlign: "center",
+                width: "250px",
+                color: "rgba(255,255,255,0.9)",
+                boxShadow: "0 8px 16px rgba(0,0,0,0.2)",
+                "&:hover": {
+                  boxShadow: "0 12px 24px rgba(0,0,0,0.3)",
+                  transform: "translateY(-5px)",
+                  transition: "all 0.3s ease",
+                },
+              }}
+            >
+              <Box sx={{ marginBottom: 2, color: "#a855f7" }}>{feature.icon}</Box>
+              <Typography variant="h6" sx={{ fontWeight: "bold", marginBottom: 1 }}>
+                {feature.title}
+              </Typography>
+              <Typography variant="body2">{feature.description}</Typography>
+            </Box>
+          ))}
+        </Box>
+        <section id="features">
+          <Typography
+            variant="h5"
+            sx={{
+              marginTop:4,
+              textAlign: "center",
+              marginBottom: 4,
+              fontWeight: "bold",
+              color: "white",
+            }}
+          >
+            Features
+          </Typography>
+          <Grid container spacing={4}>
+            <Grid item xs={12} sm={6} md={4}>
+              <FeatureCard
+                icon={TipsAndUpdatesIcon}
+                title="Smart AI"
+                text="Engage in intelligent conversations with AI that learns from every interaction."
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <FeatureCard
+                icon={RocketLaunchIcon}
+                title="Fast Response"
+                text="Get real-time answers and assistance, tailored to your needs."
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <FeatureCard
+                icon={ForumIcon}
+                title="Conversational"
+                text="Enjoy natural, human-like conversations with an AI that understands context."
+              />
+            </Grid>
+          </Grid>
         </section>
       </Container>
-      <footer style={styles.footer}>
-        <p style={styles.footerText}>© 2024 SaranshAI. All rights reserved.</p>
-      </footer>
-    </>
+
+      <Box
+        sx={{
+          padding: 3,
+          textAlign: "center",
+          backgroundColor: "#212121",
+
+        }}
+      >
+        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.7)" }}>
+          © 2024 SaranshAI. All rights reserved.
+        </Typography>
+      </Box>
+    </Box>
   );
 };
 

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile,Body
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from selenium import webdriver
@@ -13,7 +13,9 @@ import time
 from urllib.parse import urlparse, urljoin
 import fitz  # PyMuPDF
 
+
 app = FastAPI()
+
 
 # Add CORS middleware
 app.add_middleware(
@@ -36,12 +38,24 @@ model = genai.GenerativeModel(model_name="gemini-1.5-flash")
 # Load spaCy model
 nlp = spacy.load("en_core_web_sm")
 
-# Storage for summaries and contexts
+chat_history = []
 url_storage = {}
-current_context = None
+current_context = ""
+
 
 class ChatRequest(BaseModel):
     text: str
+
+# Function to generate a title from messages using gemini model
+def generate_title_from_messages(content: str) -> str:
+    chat_session = model.start_chat()
+    # Prompt Gemini for a single, brief, descriptive title
+    prompt = f"Generate a single, concise title of up to four words for the following content, without any extra explanation:\n\n{content}\n\nTitle:"
+    response = chat_session.send_message(prompt)
+    
+    # Extract the title text
+    title = response.text.strip().split('\n')[0]  # Only the first line of the response
+    return title if title else "Untitled Session"
 
 # Function to extract text from PDF file
 def extract_text_from_pdf(pdf_path: str) -> str:
@@ -151,12 +165,32 @@ def format_code(code: str) -> str:
     # Basic formatting of code to maintain indentation
     return textwrap.dedent(code).strip()
 
+    
+def add_to_history(question: str, response: str):
+    if len(chat_history) >= 10:  # Limit the history to the last 10 messages
+        chat_history.pop(0)  # Remove the oldest entry to maintain size
+    chat_history.append({"question": question, "response": response})
+
+def get_relevant_context(question: str) -> str:
+    relevant_context = ""
+    for entry in chat_history:
+        if is_context_related(question, entry["question"]):
+            relevant_context += f"Q: {entry['question']}\nA: {entry['response']}\n\n"
+    return relevant_context.strip()
+
 def is_context_related(question: str, context: str) -> bool:
-    # Use the language model to determine if the question is related to the context
     prompt = f"Is the following question related to the provided context?\n\nContext: {context}\n\nQuestion: {question}\n\nPlease answer with 'yes' or 'no'."
     chat_session = model.start_chat()
     response = chat_session.send_message(prompt)
     return response.text.strip().lower() == "yes"
+
+@app.post("/generate_title")
+async def generate_session_title(payload: dict = Body(...)):
+    content = payload.get("content")
+    if not content:
+        return {"title": "Untitled Session"}
+    title = generate_title_from_messages(content)
+    return {"title": title}
 
 @app.post("/upload_pdf")
 async def upload_pdf(file: UploadFile = File(...)):
@@ -187,45 +221,55 @@ async def chat_endpoint(request: ChatRequest):
 
     try:
         if input_text.startswith("http://") or input_text.startswith("https://"):
-            # Treat the input as a URL and summarize the webpage and about page
+            # Handle URL input and summarization logic
             pages_text = extract_text_from_website(input_text)
-            
             main_text_preprocessed = preprocess_text(pages_text["main_page_text"])
             about_text_preprocessed = preprocess_text(pages_text["about_page_text"])
-            # print(about_text_preprocessed)
             combined_text = main_text_preprocessed + " " + about_text_preprocessed
-            print(combined_text)
             combined_summary = summarize_text(combined_text)
-            
             url_storage[input_text] = combined_summary
             current_context = combined_summary
+            add_to_history(input_text, combined_summary)
             return {"response": combined_summary}
+
         elif input_text.lower().startswith("generate code for"):
-            # Handle code generation
+            # Handle code generation logic
             description = input_text[len("generate code for"):].strip()
             code = generate_code(description)
+            add_to_history(input_text, code)
             return {"response": code}
+
         elif input_text.lower().endswith(".pdf"):
-            # Handle PDF file path
+            # Handle PDF summarization logic
             pdf_text = extract_text_from_pdf(input_text)
             pdf_text_preprocessed = preprocess_text(pdf_text)
             pdf_summary = summarize_text(pdf_text_preprocessed)
-            print(pdf_summary)
             current_context = pdf_summary
+            add_to_history(input_text, pdf_summary)
             return {"response": pdf_summary}
+
         else:
-            if current_context:
-                # Determine if the question is related to the current context
-                if is_context_related(input_text, current_context):
-                    response = answer_questions(current_context, input_text)
-                else:
-                    response = generate_normal_response(input_text)
+            # Handle general questions and questions about previous messages
+            relevant_context = get_relevant_context(input_text)
+            
+            if relevant_context:
+                # If there's relevant context from previous messages, include it in the prompt
+                prompt = f"Based on the following previous conversations:\n\n{relevant_context}\n\nCurrent question: {input_text}\n\nPlease provide a response that takes into account the relevant context from previous messages."
             else:
-                # Handle general queries as normal conversation
-                response = generate_normal_response(input_text)
+                # If there's no relevant context, use the current question as is
+                prompt = input_text
+
+            if current_context and is_context_related(input_text, current_context):
+                # If the question is related to the current context (e.g., a recently processed URL or PDF)
+                response = answer_questions(current_context, prompt)
+            else:
+                # For general questions or questions unrelated to the current context
+                response = generate_normal_response(prompt)
+
+            add_to_history(input_text, response)
             return {"response": response}
+
     except Exception as e:
         print(f"Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-    
+        raise HTTPException(status_code=500, detail=str(e))  
     

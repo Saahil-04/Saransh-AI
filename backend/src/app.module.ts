@@ -8,12 +8,15 @@ import { ChatController } from './chat/chat.controller';
 import { UploadfileController } from './uploadfile/uploadfile.controller';
 import { ChatService } from './chat/chat.service';
 import { UploadfileService } from './uploadfile/uploadfile.service';
+import { SessionModule } from './session/session.module';
+import { SessionController } from './session/session.controller';
+import { SessionService } from './session/session.service';
  
 
 @Module({
-  imports: [HttpModule,AuthModule,PrismaModule],
-  controllers: [ChatController, UploadfileController],
-  providers: [ChatService, UploadfileService],
+  imports: [HttpModule,AuthModule,PrismaModule, SessionModule],
+  controllers: [ChatController, UploadfileController,SessionController],
+  providers: [ChatService, UploadfileService,SessionService],
   //changed
 })
 export class AppModule {}

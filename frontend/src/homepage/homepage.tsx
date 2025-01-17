@@ -36,7 +36,7 @@ import { blue } from "@mui/material/colors";
 import "./homepage.css";
 import { text } from "stream/consumers";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/sidebar";
+
 
 interface Message {
   sender: "user" | "bot";
@@ -45,6 +45,7 @@ interface Message {
 
 interface ChatProps {
   currentSession: number | null;
+  onLogOut: () => void;
 }
 
 const suggestionData = [
@@ -55,7 +56,7 @@ const suggestionData = [
 ];
 
 
-const Chat: React.FC<ChatProps> = ({ currentSession }) => {
+const Chat: React.FC<ChatProps> = ({ currentSession, onLogOut }) => {
   const [messageCount, setMessageCount] = useState(0);
   const [showLoginWarning, setShowLoginWarning] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -92,6 +93,7 @@ const Chat: React.FC<ChatProps> = ({ currentSession }) => {
     setIsLoggedIn(false);
     setMessages([]);
     setShowInitialMessage(true);
+    onLogOut();
     navigate('/home');
     console.log("Logout clicked");
     handleClose();
@@ -104,6 +106,46 @@ const Chat: React.FC<ChatProps> = ({ currentSession }) => {
       initials += names[1].charAt(0).toUpperCase();
     }
     return initials;
+  };
+
+  const fetchChatHistory = async (sessionId: number) => {
+
+    const token = localStorage.getItem("token");
+
+    if (!token || sessionId === null) {
+      // If no token, skip fetching chat history
+      console.log("No user is logged in.");
+      return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      console.log(token);
+      const response = await axios.get("http://localhost:3000/chat/history",
+        { // Update this URL to your NestJS server
+          headers: { Authorization: `Bearer ${token}` },
+          params: { sessionId }
+        }
+      );
+      console.log("data fetched", response.data);
+
+      const formattedMessages = response.data.map((message: any) => ({
+        sender: message.sender,
+        text: message.content,
+      }));
+
+      // setShowInitialMessage(false);
+      formattedMessages.length <= 0 ? setShowInitialMessage(true) : setShowInitialMessage(false);
+      setMessages(formattedMessages);
+
+
+    } catch (error: any) {
+      console.error("Error fetching chat history:", error);
+      if (error.response && error.response.status === 401) {
+        handleTokenExpiration()
+      } else {
+        setError("Failed to load chat history. Please try again.");
+      }
+    }
   };
 
   const handleSend = async (text = input) => {
@@ -119,7 +161,7 @@ const Chat: React.FC<ChatProps> = ({ currentSession }) => {
         if (isLoggedIn) {
           const token = localStorage.getItem('token');
           response = await axios.post("http://localhost:3000/chat",
-            { text },
+            { text, sessionId: currentSession },
             {
               headers: { Authorization: `Bearer ${token}` },
             }
@@ -165,43 +207,51 @@ const Chat: React.FC<ChatProps> = ({ currentSession }) => {
       ]);
 
       const formData = new FormData();
-      formData.append("file", file);
 
-      try {
-        let response;
-        if (isLoggedIn) {
-        const token = localStorage.getItem('token');
-        // Send the file to your backend
-         response = await axios.post("http://localhost:3000/upload/pdf", formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        });
-      }else if(messageCount < 5){
-        response = await axios.post("http://127.0.0.1:8000/upload_pdf",formData,{ 
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-         });
-        setMessageCount(prevCount => prevCount + 1);
-      }else {
-        setShowLoginWarning(true);
-        setLoading(false);
-        return;
-      }
+      if (currentSession !== null) {
+        formData.append("file", file);
+        formData.append("sessionId", currentSession.toString());
 
-        const botResponse = response.data.botResponse || response.data.response;
-        // Add bot response to the chat
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { sender: "bot", text: botResponse },
-        ]);
-      } catch (error) {
-        console.error("Error uploading PDF:", error);
-        setError("Failed to upload PDF. Please try again.");
-      } finally {
-        setLoading(false);
+
+        try {
+          let response;
+          if (isLoggedIn) {
+            const token = localStorage.getItem('token');
+            // Send the file to your backend
+            response = await axios.post("http://localhost:3000/upload/pdf", formData,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "multipart/form-data",
+                },
+              });
+          } else if (messageCount < 5) {
+            response = await axios.post("http://127.0.0.1:8000/upload_pdf", formData, {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            });
+            setMessageCount(prevCount => prevCount + 1);
+          } else {
+            setShowLoginWarning(true);
+            setLoading(false);
+            return;
+          }
+
+          const botResponse = response.data.botResponse || response.data.response;
+          // Add bot response to the chat
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            { sender: "bot", text: botResponse },
+          ]);
+        } catch (error) {
+          console.error("Error uploading PDF:", error);
+          setError("Failed to upload PDF. Please try again.");
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        console.log("No Session Was Selected Please select a session");
       }
     } else {
       setError("Please upload a valid PDF file.");
@@ -226,54 +276,24 @@ const Chat: React.FC<ChatProps> = ({ currentSession }) => {
     setError("Your session has expired, Please Log in again.");
   };
 
-  useEffect(() => {
-    const fetchChatHistory = async () => {
 
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        // If no token, skip fetching chat history
-        console.log("No user is logged in.");
-        return;
-      }
-      messages.length == 0 ? setShowInitialMessage(true):setShowInitialMessage(false);
-      try {
-        const token = localStorage.getItem('token');
-        console.log(token);
-        const response = await axios.get("http://localhost:3000/chat/history", { // Update this URL to your NestJS server
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        console.log("data fetched", response.data);
-
-        const formattedMessages = response.data.map((message: any) => ({
-          sender: message.sender,
-          text: message.content,
-        }));
-
-        setShowInitialMessage(false);
-        setMessages(formattedMessages);
-
-
-      } catch (error: any) {
-        console.error("Error fetching chat history:", error);
-        if (error.response && error.response.status === 401) {
-          handleTokenExpiration()
-        } else {
-          setError("Failed to load chat history. Please try again.");
-        }
-      }
-    };
-
-    fetchChatHistory();
-  }, []);
 
   useEffect(() => {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (currentSession !== null) {
+      setShowInitialMessage(false);
+      setMessages([]); // Clear current messages
+      fetchChatHistory(currentSession);  // Fetch messages for the new session
+    }
+    else {
+      setShowInitialMessage(true);
+    }
+  }, [currentSession]);
 
   useEffect(() => {
     console.log("messages array", messages);
@@ -294,11 +314,18 @@ const Chat: React.FC<ChatProps> = ({ currentSession }) => {
   const initials = isLoggedIn ? getInitials(username) : "";
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'auto' }}>
+    <Box sx={{
+      display: 'flex',
+      flexDirection: 'column',
+      // flexGrow: 1,
+      height: '100vh',
+      overflow: 'auto'
+    }}
+    //  className="custom-scrollbar"
+    >
 
       <AppBar
         position="static"
-
         style={{
           backgroundColor: "#212121",
           display: "flex",
@@ -309,18 +336,22 @@ const Chat: React.FC<ChatProps> = ({ currentSession }) => {
       >
 
         <Toolbar>
-          <Typography variant="h5"
+          {/* <Typography variant="h5"
             onClick={() => { navigate('/') }}
             sx={{ '&:hover': { cursor: 'pointer' } }}
           >
             SaranshAI
             <AutoAwesomeIcon sx={{ paddingLeft: "5px" }} />
+          </Typography> */}
+          <Typography variant="h5" onClick={() => { navigate('/') }} sx={{ display: "flex", alignItems: "center", color: "white", '&:hover': { cursor: 'pointer' } }}>
+            SaranshAI
+            <AutoAwesomeIcon sx={{ marginLeft: 1, color: "#A855F7" }} />
           </Typography>
-          {currentSession !== null && (
+          {/* {currentSession !== null && isLoggedIn && (
             <Typography variant="subtitle1" sx={{ ml: 2 }}>
               Session: {currentSession}
             </Typography>
-          )}
+          )} */}
         </Toolbar>
 
         {isLoggedIn ? (
@@ -376,6 +407,7 @@ const Chat: React.FC<ChatProps> = ({ currentSession }) => {
           padding: "0px",
           display: "flex",
           flexDirection: "column",
+          overflow: "hidden"
         }}
       >
         <Box
@@ -385,8 +417,9 @@ const Chat: React.FC<ChatProps> = ({ currentSession }) => {
             justifyContent: "center",
             alignItems: "center",
             width: "100%", // Ensure Box takes full width
-            overflow: 'auto'
+            overflow: 'hidden'
           }}
+        // className="custom-scrollbar"
         >
           <Paper
             style={{
@@ -398,9 +431,9 @@ const Chat: React.FC<ChatProps> = ({ currentSession }) => {
               backgroundColor: "#212121",
               // margin: "0 300px",
               boxShadow: "none",
-              overflow: "auto",
+              overflow: "hidden",
             }}
-            className="custom-scrollbar"
+          // className="custom-scrollbar"
           >
 
 
@@ -426,7 +459,7 @@ const Chat: React.FC<ChatProps> = ({ currentSession }) => {
               </Box>
             )} */}
             {showInitialMessage && (
-              <div style={{ width: "60%", margin: 'auto' }}>
+              <div style={{ width: "70%", margin: 'auto' }}>
 
                 <Box
                   sx={{
@@ -486,13 +519,27 @@ const Chat: React.FC<ChatProps> = ({ currentSession }) => {
 
             <List
               ref={listRef}
-              style={{
+              sx={{
                 flexGrow: 1,
-                overflow: "auto",
+                overflowY: "auto",  // This should allow scrolling for List
                 marginBottom: "20px",
-                // margin: '0 300px',
-                maxWidth: '100%', // Set a max-width for the List component
+                maxWidth: "100%",
+                "&::-webkit-scrollbar": {
+                  width: "10px",
+                },
+                "&::-webkit-scrollbar-track": {
+                  backgroundColor: "#2f2f2f00",
+                  borderRadius: "25px",
+                },
+                "&::-webkit-scrollbar-thumb": {
+                  backgroundColor: "#444654",
+                  borderRadius: "50px",
+                  border: "1px solid #2F2F2F",
+                },
+                // scrollbarWidth: "thin", // Firefox
+                // scrollbarColor: "#444654 #2f2f2f00", // Firefox
               }}
+
             >
               {/* {showInitialMessage && (
                 <ListItem  style={{margin: '0 auto',maxWidth: '46%',}}>
@@ -514,12 +561,39 @@ const Chat: React.FC<ChatProps> = ({ currentSession }) => {
                 <ListItem
                   key={index}
                   ref={index === messages.length - 1 ? messageEndRef : null}
-                  style={{ margin: '0 auto', maxWidth: '50%', }}
+                  sx={{
+                    display: "block",
+                    margin: '10px auto',
+                    maxWidth: '65%',
+                    paddingBottom: msg.sender === "bot" ? "15px" : "0",
+                    paddingRight: '0',
+                    paddingLeft: '0',
+                    position: "relative", // Needed for the "tail"
+                    "&::after": {
+                      content: '""',
+                      position: "absolute",
+                      width: "0",
+                      height: "0",
+                      borderStyle: "solid",
+                      borderWidth: msg.sender === "user" ? "0px 0px 15px 13px" : "0px 15px 20px 0",
+                      borderColor: msg.sender === "user"
+                        ? "transparent transparent transparent transparent" // Tail for user
+                        : "transparent #421f66 transparent transparent", // Tail for bot
+                      top: "8px", // Adjust position
+                      right: msg.sender === "user" ? "-6px" : "auto",
+                      left: msg.sender === "user" ? "auto" : "-6px",
+                    },
+                  }}
+                  className="custom-scrollbar"
                 >
                   <ListItemText
                     primary={
                       msg.text && msg.text.startsWith("📄") ? (
-                        <span style={{ display: "flex", justifyContent: 'end', alignItems: 'center' }}>
+                        <span style={{
+                          display: "flex",
+                          justifyContent: msg.sender === "user" ? "flex-end" : "flex-start",
+                          alignItems: "center",
+                        }}>
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {msg.text}
                           </ReactMarkdown>
@@ -531,17 +605,34 @@ const Chat: React.FC<ChatProps> = ({ currentSession }) => {
                         </ReactMarkdown>
                       )
                     }
-                    style={{
+                    sx={{
                       fontFamily: "Ubuntu Mono,monospace",
                       textAlign: msg.sender === "user" ? "right" : "left",
                       background:
-                        msg.sender === "user" ? "#343541" : "linear-gradient(145deg, rgba(66, 31, 102,1) 0%, rgba(255,255,255,0.2) 100%)",
+                        msg.sender === "user" ? "transparent" : "linear-gradient(145deg, rgba(66, 31, 102,1) 0%, rgba(255,255,255,0.2) 100%)", // for user #343541
                       color: "white",
                       borderRadius: "10px",
                       padding: "0 10px",
-                      // margin: "0px 0",
-                      width: "auto",
-                      overflow: 'auto', boxShadow: "0 4px 8px rgba(0, 0, 0, 0.3)"
+                      margin: msg.sender === "user" ? "0 0 0 auto" : "0 auto 0 0", // Align user to right, bot to left
+                      maxWidth: "fit-content", // Adjust as needed
+                      // width:'auto',
+                      // whiteSpace: "normal", // Allows text wrapping
+                      overflow: 'auto',
+                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.3)",
+
+                      "&::-webkit-scrollbar": {
+                        width: "2px",
+                        height: "10px"
+                      },
+                      "&::-webkit-scrollbar-track": {
+                        backgroundColor: "#2f2f2f",
+                        borderRadius: "25px",
+                      },
+                      "&::-webkit-scrollbar-thumb": {
+                        backgroundColor: "#444654",
+                        borderRadius: "50px",
+                        border: "1px solid #2F2F2F",
+                      },
                     }}
                   />
                 </ListItem>
@@ -564,6 +655,8 @@ const Chat: React.FC<ChatProps> = ({ currentSession }) => {
                     severity="warning"
                     onClose={() => setShowLoginWarning(false)}
                     sx={{
+                      display: 'flex',
+                      alignItems: 'center',
                       margin: '10px auto',
                       maxWidth: '700px',
                       width: '100%'
@@ -587,7 +680,7 @@ const Chat: React.FC<ChatProps> = ({ currentSession }) => {
                 )}
               </Box>
               {loading && (
-                <ListItem style={{ margin: '0 auto', maxWidth: '45%', justifyContent: "flex-start" }}>
+                <ListItem style={{ margin: '0 auto', maxWidth: '65%', justifyContent: "flex-start" }}>
                   <Stack sx={{ width: "100%", color: "grey.500" }} spacing={2}>
                     <AutoAwesomeOutlinedIcon
                       sx={{ fontSize: 40, color: "rgba(168,85,247,1)" }}
@@ -643,8 +736,8 @@ const Chat: React.FC<ChatProps> = ({ currentSession }) => {
               justifyContent="center"
               style={{
                 margin: '0 auto',
-                maxWidth: '800px', // Set a max-width for the TextField container
-                width: '100%',
+                // maxWidth: '800px', // Set a max-width for the TextField container
+                width: '70%',
               }}
             >
               <TextField
