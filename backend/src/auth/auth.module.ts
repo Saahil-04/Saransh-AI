@@ -7,6 +7,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtStrategy } from './jwt.strategy';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { SessionService } from 'src/session/session.service';
+import { GoogleStrategy } from './google.strategy'; 
 
 @Module({
   imports: [
@@ -18,6 +19,6 @@ import { SessionService } from 'src/session/session.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService,JwtStrategy,PrismaService,SessionService]
+  providers: [AuthService,JwtStrategy,PrismaService,SessionService,GoogleStrategy]
 })
 export class AuthModule {}

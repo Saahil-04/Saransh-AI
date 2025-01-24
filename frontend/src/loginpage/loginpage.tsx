@@ -9,19 +9,35 @@ import {
   Typography,
   AppBar,
   Toolbar,
-  Avatar,
-  IconButton,
 } from "@mui/material";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import LoginIcon from "@mui/icons-material/Login";
-import { blue } from "@mui/material/colors";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 function LoginPage() {
-  const [username, setUsername] = useState("");
+  const [identifier, setIdentifier] = useState(""); // Can be email or username
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Handle Google OAuth login redirect
+  React.useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get("token");
+    const sessionId = params.get("sessionId");
+    const username = params.get("username");
+
+    if (token && sessionId && username) {
+      // Save token and session details to localStorage
+      localStorage.setItem("token", token);
+      localStorage.setItem("sessionId", sessionId);
+      localStorage.setItem("username", username);
+
+      // Redirect to the home page
+      navigate("/home");
+    }
+  }, [location.search, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,23 +45,24 @@ function LoginPage() {
 
     try {
       const response = await axios.post("http://localhost:3000/auth/login", {
-        username,
+        identifier, // Passes either username or email
         password,
       });
 
       console.log("Login response:", response.data);
-      // Store the username in local storage
-      const { access_token } = response.data;
-      const {sessionId} = response.data;
-      localStorage.setItem('token', access_token);
-      localStorage.setItem('sessionId',sessionId);
+      const { access_token, sessionId, username } = response.data;
+      localStorage.setItem("token", access_token);
+      localStorage.setItem("sessionId", sessionId);
       localStorage.setItem("username", username);
       navigate("/home");
-      // Handle successful login here (e.g., store token, redirect to chat page)
     } catch (error) {
       console.error("Login error:", error);
-      setError("Invalid username or password");
+      setError("Invalid email/username or password");
     }
+  };
+
+  const handleGoogleLogin = () => {
+    window.location.href = "http://localhost:3000/auth/google";
   };
 
   return (
@@ -55,7 +72,6 @@ function LoginPage() {
         style={{
           backgroundColor: "#212121",
           display: "flex",
-          flexDirection: "row",
           justifyContent: "space-between",
           alignItems: "center",
         }}
@@ -74,7 +90,6 @@ function LoginPage() {
           maxWidth: "100%",
           padding: "0px",
           display: "flex",
-          flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
         }}
@@ -96,7 +111,8 @@ function LoginPage() {
             sx={{
               color: "white",
               marginBottom: "30px",
-              background: "linear-gradient(90deg, rgba(168,85,247,1) 0%, rgba(255,255,255,1) 100%)",
+              background:
+                "linear-gradient(90deg, rgba(168,85,247,1) 0%, rgba(255,255,255,1) 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
             }}
@@ -108,9 +124,9 @@ function LoginPage() {
               fullWidth
               variant="outlined"
               margin="normal"
-              label="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              label="Email or Username"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               InputProps={{
                 style: { color: "white" },
               }}
@@ -174,25 +190,51 @@ function LoginPage() {
               Login
             </Button>
             <Button
-              onClick={()=>{navigate('/register')}}
+              fullWidth
+              variant="contained"
+              sx={{
+                mt: 1,
+                mb: 2,
+                backgroundColor: "#DB4437",
+                color: "white",
+                "&:hover": {
+                  backgroundColor: "#C33C2C",
+                },
+              }}
+              onClick={handleGoogleLogin}
+            >
+              Login with Google
+            </Button>
+            <Button
+              onClick={() => {
+                navigate("/register");
+              }}
               fullWidth
               variant="outlined"
               color="info"
-              style={{textDecoration:'underline', fontSize:"0.9rem",textTransform: "none" }}
+              style={{
+                textDecoration: "underline",
+                fontSize: "0.9rem",
+                textTransform: "none",
+              }}
               sx={{
-                borderColor: 'gray', // Set your desired border color here
-                color: 'white',     // Text color
-                '&:hover': {
-                  borderColor: 'transparent', // Change border color on hover
-                  backgroundColor: 'rgba(168,85,247,0.2)', // Optional hover background color
+                borderColor: "gray",
+                color: "white",
+                "&:hover": {
+                  borderColor: "transparent",
+                  backgroundColor: "rgba(168,85,247,0.2)",
                 },
               }}
             >
-              Create an account 
+              Create an account
             </Button>
           </form>
           {error && (
-            <Typography variant="body2" align="center" sx={{ color: "red", mt: 2 }}>
+            <Typography
+              variant="body2"
+              align="center"
+              sx={{ color: "red", mt: 2 }}
+            >
               {error}
             </Typography>
           )}

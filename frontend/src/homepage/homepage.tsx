@@ -195,68 +195,76 @@ const Chat: React.FC<ChatProps> = ({ currentSession, onLogOut }) => {
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type === "application/pdf") {
-      setLoading(true);
-      setError(null);
-      setShowInitialMessage(false);
-
-      // Add user message with the file name to the chat
+    if (!file) return;
+  
+    setLoading(true);
+    setError(null);
+    setShowInitialMessage(false);
+  
+    const formData = new FormData();
+    formData.append("file", file);
+  
+    if (currentSession !== null) {
+      formData.append("sessionId", currentSession.toString());
+    } else {
+      console.log("No session selected. Please select a session.");
+      setLoading(false);
+      return;
+    }
+  
+    try {
+      let response;
+      const token = isLoggedIn ? localStorage.getItem("token") : null;
+  
+      if (file.type === "application/pdf") {
+        // Add user message with the file name to the chat
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { sender: "user", text: `📄${file.name}` },
+        ]);
+  
+        const headers = {
+          "Content-Type": "multipart/form-data",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        };
+  
+        const url = isLoggedIn
+          ? "http://localhost:3000/upload/pdf"
+          : "http://127.0.0.1:8000/upload_pdf";
+  
+        response = await axios.post(url, formData, { headers });
+      } else if (file.type.startsWith("image/")) {
+        // Add user message with the file name to the chat
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { sender: "user", text: `🖼${file.name}` },
+        ]);
+  
+        response = await axios.post("http://127.0.0.1:8000/upload_image", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+      } else {
+        setError("Invalid file type. Please upload a PDF or image file.");
+        setLoading(false);
+        return;
+      }
+  
+      // Extract bot response and update chat
+      const botResponse = response.data.response || response.data.botResponse;
       setMessages((prevMessages) => [
         ...prevMessages,
-        { sender: "user", text: `📄${file.name}` }
+        { sender: "bot", text: botResponse },
       ]);
-
-      const formData = new FormData();
-
-      if (currentSession !== null) {
-        formData.append("file", file);
-        formData.append("sessionId", currentSession.toString());
-
-
-        try {
-          let response;
-          if (isLoggedIn) {
-            const token = localStorage.getItem('token');
-            // Send the file to your backend
-            response = await axios.post("http://localhost:3000/upload/pdf", formData,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  "Content-Type": "multipart/form-data",
-                },
-              });
-          } else if (messageCount < 5) {
-            response = await axios.post("http://127.0.0.1:8000/upload_pdf", formData, {
-              headers: {
-                "Content-Type": "multipart/form-data",
-              },
-            });
-            setMessageCount(prevCount => prevCount + 1);
-          } else {
-            setShowLoginWarning(true);
-            setLoading(false);
-            return;
-          }
-
-          const botResponse = response.data.botResponse || response.data.response;
-          // Add bot response to the chat
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            { sender: "bot", text: botResponse },
-          ]);
-        } catch (error) {
-          console.error("Error uploading PDF:", error);
-          setError("Failed to upload PDF. Please try again.");
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        console.log("No Session Was Selected Please select a session");
-      }
-    } else {
-      setError("Please upload a valid PDF file.");
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      setError("Failed to upload file. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
+  
 
 
 

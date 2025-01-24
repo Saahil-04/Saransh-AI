@@ -13,10 +13,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model User {
   id       Int       @id @default(autoincrement())
   username String    @unique
+  email    String    @unique
   password String
   sessions Session[]
   messages Message[]
@@ -30,13 +30,14 @@ model Session {
   messages  Message[]
   createdAt DateTime  @default(now())
 }
+
 model Message {
   id        Int      @id @default(autoincrement())
   content   String
-  sender    String  
+  sender    String
   createdAt DateTime @default(now())
   userId    Int?
   sessionId Int?
   session   Session? @relation(fields: [sessionId], references: [id])
-  user      User?     @relation(fields: [userId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
 }

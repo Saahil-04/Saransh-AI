@@ -12,6 +12,14 @@ import textwrap
 import time
 from urllib.parse import urlparse, urljoin
 import fitz  # PyMuPDF
+from transformers import BlipProcessor, BlipForConditionalGeneration
+import os
+import io
+from PIL import Image
+import cv2
+import pytesseract
+import numpy as np
+
 
 
 app = FastAPI()
@@ -25,6 +33,9 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers
 )
+
+processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+blip_model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
 
 # Set the API key for Gemini API
 api_key = "AIzaSyDRq-ksyhLOI-T4OgkgbvE_Ik6QlqYB9Ck"
@@ -45,6 +56,59 @@ current_context = ""
 
 class ChatRequest(BaseModel):
     text: str
+
+def enhance_description_with_gemini(initial_description: str) -> str:
+    # Send the initial description to the Gemini API to get a more detailed response
+    prompt = f"describe: {initial_description}"
+    chat_session = model.start_chat()
+    response = chat_session.send_message(prompt)
+    return response.text
+
+
+def get_image_description(image_data: bytes) -> str:
+    try:
+        # Load the image from byte data
+        image = Image.open(io.BytesIO(image_data))
+
+        # Preprocess the image for the model
+        inputs = processor(images=image, return_tensors="pt")
+
+        # Generate the description using the model (assuming it's a captioning model)
+        out = blip_model.generate(
+            **inputs,
+            max_length=150,  # Max length of the description
+            num_beams=5,     # Beam search for better quality
+            repetition_penalty=1.5  # Penalty for repetition
+        )
+
+        # Decode the output from token IDs to text
+        description = processor.decode(out[0], skip_special_tokens=True)
+        print(description)  # Print for debugging purposes
+        return description
+    
+    except Exception as e:
+        print(f"Error processing image file: {e}")
+        return "Error generating description"
+
+
+def extract_text_from_image(image_data: bytes) -> str:
+    # Convert bytes to a PIL Image
+    image = Image.open(io.BytesIO(image_data))
+    
+    # Convert the image to grayscale
+    gray_image = image.convert('L')
+
+    # Convert the PIL Image to a numpy array (for OpenCV processing)
+    open_cv_image = np.array(gray_image)
+
+    # Apply a threshold to get rid of noise (adjust parameters as needed)
+    _, threshold_image = cv2.threshold(open_cv_image, 150, 255, cv2.THRESH_BINARY)
+
+    # Use Tesseract to extract text
+    extracted_text = pytesseract.image_to_string(threshold_image)
+
+    return extracted_text
+
 
 # Function to generate a title from messages using gemini model
 def generate_title_from_messages(content: str) -> str:
@@ -191,6 +255,29 @@ async def generate_session_title(payload: dict = Body(...)):
         return {"title": "Untitled Session"}
     title = generate_title_from_messages(content)
     return {"title": title}
+
+@app.post("/upload_image")
+async def upload_image(file: UploadFile = File(...)):
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Invalid file type. Only image files are allowed.")
+    
+    try:
+        # Read image content from the uploaded file
+        image_data = await file.read()
+
+        # Get a detailed description of the image using the BLIP model
+        initial_description = get_image_description(image_data)
+        
+        # Extract text from the image using Tesseract OCR
+        extracted_text = extract_text_from_image(image_data)
+
+        # Combine initial description with extracted text
+        enhanced_description = f"Image Description: {initial_description} | Extracted Text: {extracted_text}"
+
+        return {"response": enhanced_description}
+    except Exception as e:
+        print(f"Error processing image file: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process image file.")
 
 @app.post("/upload_pdf")
 async def upload_pdf(file: UploadFile = File(...)):

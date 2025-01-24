@@ -9,16 +9,14 @@ import {
   Typography,
   AppBar,
   Toolbar,
-  Avatar,
-  IconButton,
 } from "@mui/material";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import { blue } from "@mui/material/colors";
 import { useNavigate } from "react-router-dom";
 
 function RegisterPage() {
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState(""); // New state for email
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +28,13 @@ function RegisterPage() {
     setError(null);
     setSuccess(null);
 
+    // Basic validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -38,6 +43,7 @@ function RegisterPage() {
     try {
       const response = await axios.post("http://localhost:3000/auth/register", {
         username,
+        email, // Include email in the request
         password,
       });
 
@@ -45,15 +51,15 @@ function RegisterPage() {
       setSuccess("Registration successful! You can now log in.");
       // Clear the form
       setUsername("");
+      setEmail(""); // Clear email
       setPassword("");
       setConfirmPassword("");
       setTimeout(() => {
         navigate("/login");
       }, 2000);
-
     } catch (error) {
       console.error("Registration error:", error);
-      setError("Registration failed. Username may already exist.");
+      setError("Registration failed. Username or email may already exist.");
     }
   };
 
@@ -78,7 +84,7 @@ function RegisterPage() {
         <Button
           variant="contained"
           color="inherit"
-          onClick={() => navigate('/login')}
+          onClick={() => navigate("/login")}
           sx={{
             marginRight: "25px",
             backgroundColor: "rgba(168,85,247,1)",
@@ -134,6 +140,32 @@ function RegisterPage() {
               label="Username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              InputProps={{
+                style: { color: "white" },
+              }}
+              InputLabelProps={{
+                style: { color: "rgba(255, 255, 255, 0.7)" },
+              }}
+              sx={{
+                backgroundColor: "#444654",
+                borderRadius: "5px",
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
+                    borderColor: "rgba(255, 255, 255, 0.23)",
+                  },
+                  "&:hover fieldset": {
+                    borderColor: "rgba(255, 255, 255, 0.5)",
+                  },
+                },
+              }}
+            />
+            <TextField
+              fullWidth
+              variant="outlined"
+              margin="normal"
+              label="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               InputProps={{
                 style: { color: "white" },
               }}
