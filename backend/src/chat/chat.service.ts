@@ -10,49 +10,53 @@ export class ChatService {
     async saveMessage(userId: number, sessionId: number, content: string, sender: string): Promise<{ userMessage: any; botResponse: string }> {
         let userMessage = null;
         let botResponse = null;
-
-        // Send message to FastAPI regardless of authentication status
+    
         botResponse = await this.sendMessageToFastapi(content);
-
+    
         if (userId) {
-            // For authenticated users, save both user message and bot response
+            // Validate sessionId
+            const session = await this.prisma.session.findUnique({
+                where: { id: sessionId },
+            });
+    
+            if (!session) {
+                throw new Error(`Session with ID ${sessionId} does not exist.`);
+            }
+    
+            // Save user message
             userMessage = await this.prisma.message.create({
                 data: {
                     content,
                     sender,
                     userId,
-                    sessionId
+                    sessionId,
                 },
             });
-
+    
+            // Save bot response
             await this.prisma.message.create({
                 data: {
                     content: botResponse,
                     sender: 'bot',
                     userId,
-                    sessionId
-
+                    sessionId,
                 },
             });
-
-            const session = await this.prisma.session.findUnique({
-                where: { id: sessionId },
-            });
-            if (session && session.name === "New Chat") {
+    
+            // Update session name if necessary
+            if (session.name === 'New Chat') {
                 const newSessionName = await this.generateSessionName(content);
                 await this.prisma.session.update({
                     where: { id: sessionId },
                     data: { name: newSessionName },
                 });
             }
-
-
+    
             console.log('Messages saved for authenticated user:', userMessage);
         } else {
-            // For unauthenticated users, don't save any messages
             console.log('Chat processed for unauthenticated user (not saved)');
         }
-
+    
         return { userMessage, botResponse };
     }
 

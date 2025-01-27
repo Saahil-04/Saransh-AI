@@ -34,8 +34,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { blue } from "@mui/material/colors";
 import "./homepage.css";
-import { text } from "stream/consumers";
-import { useNavigate } from "react-router-dom";
+import Cookies from 'js-cookie';
+// import { text } from "stream/consumers";
+import { useNavigate, useLocation } from "react-router-dom";
 
 
 interface Message {
@@ -70,7 +71,8 @@ const Chat: React.FC<ChatProps> = ({ currentSession, onLogOut }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   // const [currentSession, setCurrentSession] = useState<number | null>(null);
   const open = Boolean(anchorEl);
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  const location = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // const handleSessionSelect = (sessionId: number) => {
@@ -88,8 +90,16 @@ const Chat: React.FC<ChatProps> = ({ currentSession, onLogOut }) => {
   };
 
   const handleLogout = () => {
+    // Clear localStorage
     localStorage.removeItem("token");
     localStorage.removeItem("username");
+    localStorage.removeItem("currentSession");
+
+    // Optionally, clear cookies if needed
+    Cookies.remove("token");
+    Cookies.remove("username");
+    Cookies.remove("sessionId");
+
     setIsLoggedIn(false);
     setMessages([]);
     setShowInitialMessage(true);
@@ -196,14 +206,14 @@ const Chat: React.FC<ChatProps> = ({ currentSession, onLogOut }) => {
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-  
+
     setLoading(true);
     setError(null);
     setShowInitialMessage(false);
-  
+
     const formData = new FormData();
     formData.append("file", file);
-  
+
     if (currentSession !== null) {
       formData.append("sessionId", currentSession.toString());
     } else {
@@ -211,27 +221,27 @@ const Chat: React.FC<ChatProps> = ({ currentSession, onLogOut }) => {
       setLoading(false);
       return;
     }
-  
+
     try {
       let response;
       const token = isLoggedIn ? localStorage.getItem("token") : null;
-  
+
       if (file.type === "application/pdf") {
         // Add user message with the file name to the chat
         setMessages((prevMessages) => [
           ...prevMessages,
           { sender: "user", text: `📄${file.name}` },
         ]);
-  
+
         const headers = {
           "Content-Type": "multipart/form-data",
           ...(token && { Authorization: `Bearer ${token}` }),
         };
-  
+
         const url = isLoggedIn
           ? "http://localhost:3000/upload/pdf"
           : "http://127.0.0.1:8000/upload_pdf";
-  
+
         response = await axios.post(url, formData, { headers });
       } else if (file.type.startsWith("image/")) {
         // Add user message with the file name to the chat
@@ -239,7 +249,7 @@ const Chat: React.FC<ChatProps> = ({ currentSession, onLogOut }) => {
           ...prevMessages,
           { sender: "user", text: `🖼${file.name}` },
         ]);
-  
+
         response = await axios.post("http://127.0.0.1:8000/upload_image", formData, {
           headers: {
             "Content-Type": "multipart/form-data",
@@ -250,7 +260,7 @@ const Chat: React.FC<ChatProps> = ({ currentSession, onLogOut }) => {
         setLoading(false);
         return;
       }
-  
+
       // Extract bot response and update chat
       const botResponse = response.data.response || response.data.botResponse;
       setMessages((prevMessages) => [
@@ -264,7 +274,7 @@ const Chat: React.FC<ChatProps> = ({ currentSession, onLogOut }) => {
       setLoading(false);
     }
   };
-  
+
 
 
 
@@ -284,7 +294,9 @@ const Chat: React.FC<ChatProps> = ({ currentSession, onLogOut }) => {
     setError("Your session has expired, Please Log in again.");
   };
 
-
+  const getCookie = (name: string): string | undefined => {
+    return Cookies.get(name); // Get the value of a cookie by name
+  };
 
   useEffect(() => {
     if (fileInputRef.current) {
@@ -316,6 +328,40 @@ const Chat: React.FC<ChatProps> = ({ currentSession, onLogOut }) => {
   useEffect(() => {
     const storedUsername = localStorage.getItem("username");
     setIsLoggedIn(!!storedUsername);
+  }, []);
+
+  // useEffect(() => {
+  //   const params = new URLSearchParams(location.search);
+  //   const token = params.get("token");
+  //   const username = params.get("username");
+
+  //   if (token && username) {
+  //     localStorage.setItem("token", token);
+  //     localStorage.setItem("username", username);
+  //     setIsLoggedIn(true);
+  //   }
+  // }, [location]);
+  useEffect(() => {
+    // Fetch token, username, and sessionId from cookies
+
+
+    console.log('All cookies:', Cookies.get());
+    const token = getCookie("token");
+    const username = getCookie("username");
+    const sessionId = getCookie("sessionId");
+    console.log("the data from the cookie ", token, username, sessionId);
+    if (token && username && sessionId) {
+      // Store them in localStorage
+      localStorage.setItem("token", token);
+      localStorage.setItem("username", username);
+      localStorage.setItem("sessionId", sessionId);
+
+      // Set logged-in state and initialize session
+      setIsLoggedIn(true);
+      fetchChatHistory(Number(sessionId)); // Fetch chat history for this session
+    } else {
+      console.log("Required data not found in cookies.");
+    }
   }, []);
 
   const username = localStorage.getItem("username") || "";
