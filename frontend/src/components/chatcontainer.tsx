@@ -13,7 +13,7 @@ const ChatContainer: React.FC = () => {
     const token = localStorage.getItem("token");
     const sessionId = localStorage.getItem("sessionId");
     setIsLoggedIn(!!token);
-
+    console.log("sessionID",sessionId);
     if (sessionId) {
       setCurrentSession(parseInt(sessionId, 10))
     }

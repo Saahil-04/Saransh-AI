@@ -35,27 +35,27 @@ export class AuthService {
 
     async login(user: any) {
         const payload = { username: user.username, sub: user.id };
-
+    
+        // Check for existing sessions
         const sessions = await this.sessionService.getSessionsByUser(user.id);
         let currentSession;
-        console.log("Checking user sessions");
-
+    
         if (sessions.length === 0) {
-            await this.sessionService.createSession(user.id, "New Chat");
-            console.log("Session for new user Created");
+            // Create a new session for the user
+            currentSession = await this.sessionService.createSession(user.id, 'New Chat');
+            console.log("the current new session created",currentSession);
         } else {
+            // Use the first existing session
             currentSession = sessions[0];
-            console.log("using existing session: ", currentSession);
         }
-        console.log("siging the user with new session");
-        console.log("the matchdfield ", user.matchedField);
+    
+        // Generate and return the JWT token and session details
         return {
             access_token: this.jwt.sign(payload),
             sessionId: currentSession.id,
-            username:user.username,
+            username: user.username,
         };
     }
-
     async register(username: string, email:string, password: string) {
         const hashedPassword = await bcrypt.hash(password, 10);
         return this.prisma.user.create({
@@ -68,26 +68,23 @@ export class AuthService {
     }
 
     // Google OAuth logic (added functionality)
-    async findOrCreateGoogleUser(user: any) {
+    async findOrCreateGoogleUser(googleUser: any) {
+        const { email, firstName } = googleUser;
+    
         // Check if user already exists
-        const existingUser = await this.prisma.user.findUnique({
-            where: { email: user.email },
-        });
-
-        if (existingUser) {
-            return existingUser;
+        let existingUser = await this.prisma.user.findUnique({ where: { email } });
+    
+        if (!existingUser) {
+            // Create a new user for Google OAuth
+            existingUser = await this.prisma.user.create({
+                data: {
+                    username: email.split('@')[0], // Fallback to part of email
+                    email,
+                    password: '', // Google handles authentication
+                },
+            });
         }
-
-        // Create a new user for Google OAuth
-        return this.prisma.user.create({
-            data: {
-                username: user.email, // Use email as username
-                email: user.email,
-                // firstName: user.firstName,
-                // lastName: user.lastName,
-                // picture: user.picture,
-                password: '', // Empty because Google handles authentication
-            },
-        });
+    
+        return existingUser;
     }
 }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
   Box,
@@ -19,25 +19,58 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const location = useLocation();
+  // const location = useLocation();
 
-  // Handle Google OAuth login redirect
-  React.useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const token = params.get("token");
-    const sessionId = params.get("sessionId");
-    const username = params.get("username");
+  // Helper function to parse cookies
+  // const getCookieValue = (name: string): string | null => {
+  //   const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+  //   return match ? decodeURIComponent(match[2]) : null;
+  // };
 
-    if (token && sessionId && username) {
-      // Save token and session details to localStorage
-      localStorage.setItem("token", token);
-      localStorage.setItem("sessionId", sessionId);
-      localStorage.setItem("username", username);
+  // // Helper function to clear cookies
+  // const clearCookies = () => {
+  //   document.cookie.split(";").forEach((cookie) => {
+  //     const eqPos = cookie.indexOf("=");
+  //     const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie;
+  //     document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+  //   });
+  // };
 
-      // Redirect to the home page
-      navigate("/home");
-    }
-  }, [location.search, navigate]);
+  // Handle Google OAuth login or cookie sync
+  // useEffect(() => {
+  //   const params = new URLSearchParams(location.search);
+  //   const token = params.get("token");
+  //   const sessionId = params.get("sessionId");
+  //   const username = params.get("username");
+
+  //   if (token && sessionId && username) {
+  //     // Save token and session details to localStorage
+  //     localStorage.setItem("token", token);
+  //     localStorage.setItem("sessionId", sessionId);
+  //     localStorage.setItem("username", username);
+
+  //     // Clear query params and cookies after login
+  //     window.history.replaceState({}, document.title, location.pathname);
+  //     clearCookies();
+
+  //     // Redirect to the home page
+  //     navigate("/home");
+  //   } else {
+  //     // Check cookies and sync to localStorage
+  //     const cookieToken = getCookieValue("token");
+  //     const cookieUsername = getCookieValue("username");
+  //     const cookieSessionId = getCookieValue("sessionId");
+
+  //     if (cookieToken && cookieUsername && cookieSessionId) {
+  //       localStorage.setItem("token", cookieToken);
+  //       localStorage.setItem("username", cookieUsername);
+  //       localStorage.setItem("sessionId", cookieSessionId);
+  //       console.log("this is the token",localStorage);
+  //       clearCookies();
+  //       navigate("/home");
+  //     }
+  //   }
+  // }, [location.search, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +82,6 @@ function LoginPage() {
         password,
       });
 
-      console.log("Login response:", response.data);
       const { access_token, sessionId, username } = response.data;
       localStorage.setItem("token", access_token);
       localStorage.setItem("sessionId", sessionId);
