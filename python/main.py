@@ -339,14 +339,14 @@ async def upload_image(file: UploadFile = File(...)):
         extracted_text = extract_text_from_image(image_data)
 
         # Combine descriptions
-        combined_input = f"Image description: {initial_description}. Extracted text: {extracted_text}"
 
-        # Get enhanced description from Gemini
-        prompt = f"Based on the following image analysis, provide a detailed description:\n{combined_input}"
-        response = model.generate_content(prompt)
+        # # Get enhanced description from Gemini
+        # prompt = f"Based on the following image analysis, provide a detailed description:\n{combined_input}"
+        # response = model.generate_content(combined_input)
         
         # Format Gemini response
-        enhanced_response = response.text.replace("•", "  *").replace("\n", "\n\n")  # Format list items
+        # enhanced_response = response.text.replace("•", "  *").replace("\n", "\n\n")  # Format list items
+        enhanced_response = f"Image description: {initial_description}. Extracted text: {extracted_text}"
 
         return {"response": enhanced_response}
     except Exception as e:
