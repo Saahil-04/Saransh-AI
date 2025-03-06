@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box } from '@mui/material';
 import Sidebar from './sidebar';
-import Chat from '../homepage/homepage';
+import Chat from '../pages/homepage/homepage';
 
 const ChatContainer: React.FC = () => {
   const [currentSession, setCurrentSession] = useState<number | null>(null);
@@ -13,8 +13,10 @@ const ChatContainer: React.FC = () => {
     const token = localStorage.getItem("token");
     const sessionId = localStorage.getItem("sessionId");
     setIsLoggedIn(!!token);
+    console.log("isLoggedin is ",isLoggedIn);
     console.log("sessionID",sessionId);
     if (sessionId) {
+      console.log("the session which is selected in start",sessionId)
       setCurrentSession(parseInt(sessionId, 10))
     }
 
@@ -23,7 +25,7 @@ const ChatContainer: React.FC = () => {
     console.log("username ", localStorage.getItem("username"));
   }, []);
 
-  const handleSessionSelect = (sessionId: number) => {
+  const handleSessionSelect = (sessionId: number | null) => {
     setCurrentSession(sessionId);
     // You can add logic here to fetch messages for the selected session
   };

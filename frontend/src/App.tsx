@@ -1,11 +1,11 @@
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
-import Chat from './homepage/homepage';
+import Chat from './pages/homepage/homepage';
 import theme from './theme';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Intropage from './homepage/intropage/intropage';
-import LoginPage from './loginpage/loginpage';
-import RegisterPage from './registerpage/registerpage';
+import Intropage from './pages/intropage/intropage';
+import LoginPage from './pages/loginpage/loginpage';
+import RegisterPage from './pages/registerpage/registerpage';
 import ChatContainer from './components/chatcontainer';
 
 function App() {

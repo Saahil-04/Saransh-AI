@@ -18,6 +18,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import MenuIcon from '@mui/icons-material/Menu';
+import Cookies from "js-cookie"
 import axios from 'axios';
 
 interface Session {
@@ -26,7 +27,7 @@ interface Session {
 }
 
 interface SidebarProps {
-  onSessionSelect: (sessionId: number) => void;
+  onSessionSelect: (sessionId: number | null) => void;
   onToggle: (isOpen: boolean) => void;
 }
 
@@ -48,7 +49,16 @@ const Sidebar: React.FC<SidebarProps> = ({ onSessionSelect, onToggle }) => {
         const response = await axios.get('http://localhost:3000/session', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setSessions(response.data); // Assuming the backend sends an array of sessions
+        setSessions(response.data); // the backend sends an array of sessions
+
+        const sessionId = localStorage.getItem('sessionId');
+        if (sessionId) {
+          const sessionExists = response.data.some((session: Session) => session.id === parseInt(sessionId, 10));
+          if (!sessionExists) {
+            localStorage.removeItem('sessionId');
+            onSessionSelect(null); // Notify parent component
+          }
+        }
 
       } catch (err) {
         console.error('Error fetching sessions:', err);
@@ -93,7 +103,35 @@ const Sidebar: React.FC<SidebarProps> = ({ onSessionSelect, onToggle }) => {
       });
 
       // Update the sessions state by removing the deleted session
-      setSessions((prevSessions) => prevSessions.filter((session) => session.id !== sessionId));
+      setSessions((prevSessions) => {
+        const updatedSessions = prevSessions.filter((session) => session.id !== sessionId);
+
+        // Check if the deleted session is the one currently stored in localStorage
+        const storedSessionId = localStorage.getItem('sessionId');
+        if (storedSessionId && parseInt(storedSessionId, 10) === sessionId) {
+          // Clear or update sessionId in localStorage
+          if (updatedSessions.length > 0) {
+            // Set the sessionId to the first session in the updated list
+            localStorage.setItem('sessionId', updatedSessions[0].id.toString());
+
+            Cookies.set("sessionId", updatedSessions[0].id.toString());
+            console.log("sessionId after deleting in cookies");
+            onSessionSelect(updatedSessions[0].id); // Notify parent component
+          } else {
+            // No sessions left, clear the sessionId
+            localStorage.removeItem('sessionId');
+            Cookies.remove("sessionId");
+            onSessionSelect(null); // Notify parent component
+            handleCreateSession();
+
+          }
+        }
+
+        return updatedSessions;
+      });
+
+
+
     } catch (err) {
       console.error('Error deleting session:', err);
     }
@@ -106,8 +144,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onSessionSelect, onToggle }) => {
       const response = await axios.post('http://localhost:3000/session', { name: 'New Chat' }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSessions([...sessions, response.data]); // Append the new session to the list
+      setSessions((prevSessions) => [...prevSessions, response.data]); // Append the new session to the list
       console.log("the new Session which is created!!!!!!!!!!1", response);
+
+      // Update sessionId in localStorage
+      localStorage.setItem('sessionId', response.data.id);
+      Cookies.set("sessionId", response.data.id);
+      console.log("sessionId stored in localStorage", localStorage.getItem("sessionId"));
+
       onSessionSelect(response.data.id);
     } catch (err) {
       console.error('Error creating session:', err);
@@ -118,7 +162,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSessionSelect, onToggle }) => {
     <Box
       sx={{
         height: '100%',
-        backgroundColor: '#212121',
+        backgroundColor: '#1a1a2e',
         color: 'white',
         overflow: 'hidden',
       }}

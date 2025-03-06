@@ -8,7 +8,6 @@ import {
   Button,
   Grid,
   Paper,
-  Avatar,
 } from "@mui/material";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
@@ -16,17 +15,31 @@ import ImageIcon from "@mui/icons-material/Image";
 import LinkIcon from "@mui/icons-material/Link";
 import ArrowOutwardIcon from "@mui/icons-material/ArrowOutward";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import TipsAndUpdatesIcon from '@mui/icons-material/TipsAndUpdates';
-import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
-import ForumIcon from '@mui/icons-material/Forum';
-import { FaRobot } from "react-icons/fa";
+import TipsAndUpdatesIcon from "@mui/icons-material/TipsAndUpdates";
+import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
+import ForumIcon from "@mui/icons-material/Forum";
 import { useNavigate } from "react-router-dom";
+import { styled } from "@mui/system";
+
+// Styled Components
+const StyledButton = styled(Button)(({ theme }) => ({
+  background: "linear-gradient(45deg, #6b46c1 30%, #805ad5 90%)",
+  color: "white",
+  borderRadius: "10px",
+  padding: theme.spacing(1.5),
+  transition: "all 0.3s ease-in-out",
+  "&:hover": {
+    background: "linear-gradient(45deg, #805ad5 30%, #6b46c1 90%)",
+    transform: "translateY(-2px)",
+    boxShadow: "0 5px 15px rgba(0, 0, 0, 0.3)",
+  },
+}));
 
 const FeatureCard = ({ icon: Icon, title, text }: { icon: React.ElementType; title: string; text: string }) => (
   <Paper
     elevation={3}
     sx={{
-      backgroundColor: "#343541",
+      backgroundColor: "rgba(255, 255, 255, 0.05)",
       padding: "20px",
       borderRadius: "12px",
       textAlign: "center",
@@ -57,7 +70,7 @@ const IntroPage = () => {
         flexDirection: "column",
         height: "100vh",
         overflow: "auto",
-        backgroundColor: "#212121",
+        backgroundColor: "#1a1a2e",
         "&::-webkit-scrollbar": {
           width: "10px",
         },
@@ -75,45 +88,35 @@ const IntroPage = () => {
       <AppBar
         position="static"
         sx={{
-          backgroundColor: "#212121",
+          backgroundColor: "transparent",
           boxShadow: "none",
-
         }}
       >
-        <Toolbar
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Typography variant="h5" sx={{ display: "flex", alignItems: "center", color: "white" }}>
+        <Toolbar>
+          <Typography
+            variant="h5"
+            sx={{
+              // display: "flex",
+              // alignItems: "center",
+              // color: "white",
+              "&:hover": { cursor: "pointer" },
+            }}
+            onClick={() => navigate("/")}
+          >
             SaranshAI
-            <AutoAwesomeIcon sx={{ marginLeft: 1, color: "#A855F7" }} />
+            <AutoAwesomeIcon sx={{ ml: 1 }} />
           </Typography>
-          <Box>
-            <Button
-              variant="contained"
-              sx={{
-                marginRight: 2,
-                backgroundColor: "#A855F7",
-                "&:hover": { backgroundColor: "#8c4dd5" },
-              }}
-              onClick={() => navigate("/register")}
-            >
-              Sign Up
-            </Button>
-            <Button
-              variant="contained"
-              sx={{
-                backgroundColor: "#A855F7",
-                "&:hover": { backgroundColor: "#8c4dd5" },
-              }}
-              onClick={() => navigate("/login")}
-            >
-              Login
-            </Button>
-          </Box>
+          <Box sx={{ flexGrow: 1 }} />
+          <StyledButton
+            variant="contained"
+            sx={{ mr: 2 }}
+            onClick={() => navigate("/register")}
+          >
+            Sign Up
+          </StyledButton>
+          <StyledButton variant="contained" onClick={() => navigate("/login")}>
+            Login
+          </StyledButton>
         </Toolbar>
       </AppBar>
 
@@ -123,8 +126,7 @@ const IntroPage = () => {
             variant="h3"
             sx={{
               fontWeight: "bold",
-              background:
-                "linear-gradient(90deg, rgba(168,85,247,1) 0%, rgba(255,255,255,1) 100%)",
+              background: "linear-gradient(45deg, #6b46c1, #805ad5)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               marginBottom: 2,
@@ -134,7 +136,7 @@ const IntroPage = () => {
           </Typography>
           <Typography
             variant="h6"
-            sx={{ color: "rgba(255,255,255,0.7)", maxWidth: "600px", margin: "0 auto" }}
+            sx={{ color: "rgba(255, 255, 255, 0.7)", maxWidth: "600px", margin: "0 auto" }}
           >
             Experience the future of AI-driven conversations.
           </Typography>
@@ -166,55 +168,32 @@ const IntroPage = () => {
             Try SaranshAI
             <ArrowOutwardIcon sx={{ marginLeft: 1 }} />
           </Button>
-
-
         </Box>
+
         <Box
           sx={{
             display: "flex",
             justifyContent: "center",
             flexWrap: "wrap",
-            gap: 4,
+            gap: 2,
             marginTop: 4,
           }}
         >
-          {/* Feature Cards */}
           {[
-            { icon: <TextSnippetIcon fontSize="large" />, title: "Text Summarization", description: "Summarize long text into concise, meaningful insights." },
-            { icon: <PictureAsPdfIcon fontSize="large" />, title: "PDF Summarization", description: "Extract key points from complex PDF documents." },
-            { icon: <ImageIcon fontSize="large" />, title: "Image Analysis", description: "Analyze and summarize text from images with ease." },
-            { icon: <LinkIcon fontSize="large" />, title: "Website Links", description: "Fetch and summarize content from website URLs." },
+            { icon: TextSnippetIcon, title: "Text Summarization", text: "Summarize long text into concise, meaningful insights." },
+            { icon: PictureAsPdfIcon, title: "PDF Summarization", text: "Extract key points from complex PDF documents." },
+            { icon: ImageIcon, title: "Image Analysis", text: "Analyze and summarize text from images with ease." },
+            { icon: LinkIcon, title: "Website Links", text: "Fetch and summarize content from website URLs." },
           ].map((feature, index) => (
-            <Box
-              key={index}
-              sx={{
-                backgroundColor: "#292929",
-                padding: "20px",
-                borderRadius: "16px",
-                textAlign: "center",
-                width: "250px",
-                color: "rgba(255,255,255,0.9)",
-                boxShadow: "0 8px 16px rgba(0,0,0,0.2)",
-                "&:hover": {
-                  boxShadow: "0 12px 24px rgba(0,0,0,0.3)",
-                  transform: "translateY(-5px)",
-                  transition: "all 0.3s ease",
-                },
-              }}
-            >
-              <Box sx={{ marginBottom: 2, color: "#a855f7" }}>{feature.icon}</Box>
-              <Typography variant="h6" sx={{ fontWeight: "bold", marginBottom: 1 }}>
-                {feature.title}
-              </Typography>
-              <Typography variant="body2">{feature.description}</Typography>
-            </Box>
+            <FeatureCard key={index} icon={feature.icon} title={feature.title} text={feature.text} />
           ))}
         </Box>
+
         <section id="features">
           <Typography
             variant="h5"
             sx={{
-              marginTop:4,
+              marginTop: 4,
               textAlign: "center",
               marginBottom: 4,
               fontWeight: "bold",
@@ -253,11 +232,10 @@ const IntroPage = () => {
         sx={{
           padding: 3,
           textAlign: "center",
-          backgroundColor: "#212121",
-
+          backgroundColor: "#1a1a2e",
         }}
       >
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.7)" }}>
+        <Typography variant="body2" sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
           © 2024 SaranshAI. All rights reserved.
         </Typography>
       </Box>
@@ -265,4 +243,4 @@ const IntroPage = () => {
   );
 };
 
-export default IntroPage;
+export default IntroPage; 

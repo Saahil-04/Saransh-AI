@@ -4,19 +4,20 @@ import { AuthModule } from './auth/auth.module';
 import { ChatModule } from './chat/chat.module';
 import { UploadfileModule } from './uploadfile/uploadfile.module';
 import { PrismaModule } from './prisma/prisma.module';
-import { ChatController } from './chat/chat.controller';
-import { UploadfileController } from './uploadfile/uploadfile.controller';
-import { ChatService } from './chat/chat.service';
-import { UploadfileService } from './uploadfile/uploadfile.service';
 import { SessionModule } from './session/session.module';
-import { SessionController } from './session/session.controller';
-import { SessionService } from './session/session.service';
- 
+import { UploadImageModule } from './uploadimage/uploadimage.module';
+import { ContextModule } from './context/context.module';
 
 @Module({
-  imports: [HttpModule,AuthModule,PrismaModule, SessionModule],
-  controllers: [ChatController, UploadfileController,SessionController],
-  providers: [ChatService, UploadfileService,SessionService],
-  //changed
+  imports: [
+    HttpModule,
+    AuthModule,
+    PrismaModule,
+    SessionModule,
+    ChatModule,
+    UploadfileModule,
+    UploadImageModule,
+    ContextModule
+  ],
 })
 export class AppModule {}

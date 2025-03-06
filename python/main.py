@@ -22,6 +22,7 @@ import numpy as np
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, VideoUnavailable
 
+from typing import Optional
 
 
 
@@ -59,6 +60,38 @@ current_context = ""
 
 class ChatRequest(BaseModel):
     text: str
+    context: Optional[str] = None 
+
+
+def get_video_id_from_url(url: str) -> str:
+    """Extract the YouTube video ID from the URL."""
+    parsed_url = urlparse(url)
+    if parsed_url.hostname in ['www.youtube.com', 'youtube.com']:
+        query = parsed_url.query
+        query_params = dict(qc.split("=") for qc in query.split("&"))
+        return query_params.get("v", "")
+    elif parsed_url.hostname == 'youtu.be':
+        return parsed_url.path.lstrip("/")
+    return None
+
+def fetch_youtube_transcript(video_url: str) -> str:
+    """Fetch the transcript of a YouTube video."""
+    video_id = get_video_id_from_url(video_url)
+    if not video_id:
+        raise HTTPException(status_code=400, detail="Invalid YouTube URL.")
+    
+    try:
+        transcript = YouTubeTranscriptApi.get_transcript(video_id)
+        # Combine transcript parts into a single text
+        full_transcript = " ".join([item["text"] for item in transcript])
+        return full_transcript
+    except TranscriptsDisabled:
+        raise HTTPException(status_code=400, detail="Transcripts are disabled for this video.")
+    except VideoUnavailable:
+        raise HTTPException(status_code=400, detail="Video unavailable or invalid ID.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch transcript: {str(e)}")
+
 
 
 def get_video_id_from_url(url: str) -> str:
@@ -299,16 +332,23 @@ async def upload_image(file: UploadFile = File(...)):
         # Read image content from the uploaded file
         image_data = await file.read()
 
-        # Get a detailed description of the image using the BLIP model
+        # Get description from BLIP model
         initial_description = get_image_description(image_data)
         
-        # Extract text from the image using Tesseract OCR
+        # Extract text using OCR
         extracted_text = extract_text_from_image(image_data)
 
-        # Combine initial description with extracted text
-        enhanced_description = f"Image Description: {initial_description} | Extracted Text: {extracted_text}"
+        # Combine descriptions
+        combined_input = f"Image description: {initial_description}. Extracted text: {extracted_text}"
 
-        return {"response": enhanced_description}
+        # Get enhanced description from Gemini
+        prompt = f"Based on the following image analysis, provide a detailed description:\n{combined_input}"
+        response = model.generate_content(prompt)
+        
+        # Format Gemini response
+        enhanced_response = response.text.replace("•", "  *").replace("\n", "\n\n")  # Format list items
+
+        return {"response": enhanced_response}
     except Exception as e:
         print(f"Error processing image file: {e}")
         raise HTTPException(status_code=500, detail="Failed to process image file.")
@@ -336,8 +376,8 @@ async def upload_pdf(file: UploadFile = File(...)):
 
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
-    global current_context
     input_text = request.text
+    context = request.context if request.context else ""  # Context is managed by NestJS
 
     try:
         if input_text.startswith("http://") or input_text.startswith("https://"):
@@ -352,52 +392,33 @@ async def chat_endpoint(request: ChatRequest):
             
             # For other URLs, handle website summarization
             pages_text = extract_text_from_website(input_text)
-            main_text_preprocessed = preprocess_text(pages_text["main_page_text"])
-            about_text_preprocessed = preprocess_text(pages_text["about_page_text"])
-            combined_text = main_text_preprocessed + " " + about_text_preprocessed
+            combined_text = preprocess_text(pages_text.get("main_page_text", "")) + " " + preprocess_text(pages_text.get("about_page_text", ""))
             combined_summary = summarize_text(combined_text)
-            url_storage[input_text] = combined_summary
-            current_context = combined_summary
-            add_to_history(input_text, combined_summary)
             return {"response": combined_summary}
 
         elif input_text.lower().startswith("generate code for"):
             # Handle code generation logic
             description = input_text[len("generate code for"):].strip()
             code = generate_code(description)
-            add_to_history(input_text, code)
             return {"response": code}
 
         elif input_text.lower().endswith(".pdf"):
             # Handle PDF summarization logic
             pdf_text = extract_text_from_pdf(input_text)
-            pdf_text_preprocessed = preprocess_text(pdf_text)
-            pdf_summary = summarize_text(pdf_text_preprocessed)
-            current_context = pdf_summary
-            add_to_history(input_text, pdf_summary)
+            pdf_summary = summarize_text(preprocess_text(pdf_text))
             return {"response": pdf_summary}
 
         else:
-            # Handle general questions and questions about previous messages
-            relevant_context = get_relevant_context(input_text)
             
-            if relevant_context:
-                # If there's relevant context from previous messages, include it in the prompt
-                prompt = f"Based on the following previous conversations:\n\n{relevant_context}\n\nCurrent question: {input_text}\n\nPlease provide a response that takes into account the relevant context from previous messages."
+            # General conversation with provided context
+            if context:
+                prompt = f"{context}\nUser: {input_text}\nAI:"
             else:
-                # If there's no relevant context, use the current question as is
-                prompt = input_text
-
-            if current_context and is_context_related(input_text, current_context):
-                # If the question is related to the current context (e.g., a recently processed URL or PDF)
-                response = answer_questions(current_context, prompt)
-            else:
-                # For general questions or questions unrelated to the current context
-                response = generate_normal_response(prompt)
-
-            add_to_history(input_text, response)
+                prompt = f"User: {input_text}\nAI:"    # No context, treat as a new chat
+            response = generate_normal_response(prompt)
             return {"response": response}
 
     except Exception as e:
         print(f"Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  
+    

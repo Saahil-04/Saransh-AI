@@ -19,7 +19,8 @@ export class ChatController {
     @UseGuards(JwtAuthGuard)
     async getChatHistory(@Request() req,@Query('sessionId', ParseIntPipe) sessionId: number) {
         // const {sessionId} = body;
-        return this.chatService.getChatHistory(req.user.userId,sessionId);
+        const userId = req.user.id;
+        return this.chatService.getChatHistory(userId,sessionId);
     }
 
 }
