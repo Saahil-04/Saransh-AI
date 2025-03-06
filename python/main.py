@@ -19,6 +19,9 @@ from PIL import Image
 import cv2
 import pytesseract
 import numpy as np
+from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api._errors import TranscriptsDisabled, VideoUnavailable
+
 
 
 
@@ -57,6 +60,37 @@ current_context = ""
 class ChatRequest(BaseModel):
     text: str
 
+
+def get_video_id_from_url(url: str) -> str:
+    """Extract the YouTube video ID from the URL."""
+    parsed_url = urlparse(url)
+    if parsed_url.hostname in ['www.youtube.com', 'youtube.com']:
+        query = parsed_url.query
+        query_params = dict(qc.split("=") for qc in query.split("&"))
+        return query_params.get("v", "")
+    elif parsed_url.hostname == 'youtu.be':
+        return parsed_url.path.lstrip("/")
+    return None
+
+def fetch_youtube_transcript(video_url: str) -> str:
+    """Fetch the transcript of a YouTube video."""
+    video_id = get_video_id_from_url(video_url)
+    if not video_id:
+        raise HTTPException(status_code=400, detail="Invalid YouTube URL.")
+    
+    try:
+        transcript = YouTubeTranscriptApi.get_transcript(video_id)
+        # Combine transcript parts into a single text
+        full_transcript = " ".join([item["text"] for item in transcript])
+        return full_transcript
+    except TranscriptsDisabled:
+        raise HTTPException(status_code=400, detail="Transcripts are disabled for this video.")
+    except VideoUnavailable:
+        raise HTTPException(status_code=400, detail="Video unavailable or invalid ID.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch transcript: {str(e)}")
+
+
 def enhance_description_with_gemini(initial_description: str) -> str:
     # Send the initial description to the Gemini API to get a more detailed response
     prompt = f"describe: {initial_description}"
@@ -83,7 +117,7 @@ def get_image_description(image_data: bytes) -> str:
 
         # Decode the output from token IDs to text
         description = processor.decode(out[0], skip_special_tokens=True)
-        print(description)  # Print for debugging purposes
+        # print(description)  # Print for debugging purposes
         return description
     
     except Exception as e:
@@ -300,7 +334,6 @@ async def upload_pdf(file: UploadFile = File(...)):
         print(f"Error processing PDF file: {e}")
         raise HTTPException(status_code=500, detail="Failed to process PDF file.")
 
-
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
     global current_context
@@ -308,7 +341,16 @@ async def chat_endpoint(request: ChatRequest):
 
     try:
         if input_text.startswith("http://") or input_text.startswith("https://"):
-            # Handle URL input and summarization logic
+            # Check if the input is a YouTube video link
+            if "youtube.com/watch" in input_text or "youtu.be" in input_text:
+                # Handle YouTube video summarization
+                transcript = fetch_youtube_transcript(input_text)  # Fetch transcript
+                preprocessed_text = preprocess_text(transcript)   # Preprocess the transcript
+                summary = summarize_text(preprocessed_text)       # Summarize the transcript
+                current_context = summary  # Update context for the session
+                return {"response": summary}
+            
+            # For other URLs, handle website summarization
             pages_text = extract_text_from_website(input_text)
             main_text_preprocessed = preprocess_text(pages_text["main_page_text"])
             about_text_preprocessed = preprocess_text(pages_text["about_page_text"])
@@ -358,5 +400,4 @@ async def chat_endpoint(request: ChatRequest):
 
     except Exception as e:
         print(f"Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  
-    
+        raise HTTPException(status_code=500, detail=str(e))
