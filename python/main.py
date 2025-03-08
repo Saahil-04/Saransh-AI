@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, HTTPException, UploadFile,Body
+from fastapi import FastAPI, File, HTTPException, UploadFile, Body
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from selenium import webdriver
@@ -12,7 +12,6 @@ import textwrap
 import time
 from urllib.parse import urlparse, urljoin
 import fitz  # PyMuPDF
-from transformers import BlipProcessor, BlipForConditionalGeneration
 import os
 import io
 from PIL import Image
@@ -21,13 +20,9 @@ import pytesseract
 import numpy as np
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, VideoUnavailable
-
 from typing import Optional
 
-
-
 app = FastAPI()
-
 
 # Add CORS middleware
 app.add_middleware(
@@ -37,9 +32,6 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers
 )
-
-processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
-blip_model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
 
 # Set the API key for Gemini API
 api_key = "AIzaSyDRq-ksyhLOI-T4OgkgbvE_Ik6QlqYB9Ck"
@@ -57,11 +49,9 @@ chat_history = []
 url_storage = {}
 current_context = ""
 
-
 class ChatRequest(BaseModel):
     text: str
     context: Optional[str] = None 
-
 
 def get_video_id_from_url(url: str) -> str:
     """Extract the YouTube video ID from the URL."""
@@ -92,43 +82,23 @@ def fetch_youtube_transcript(video_url: str) -> str:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch transcript: {str(e)}")
 
-
-
-
-
-def enhance_description_with_gemini(initial_description: str) -> str:
-    # Send the initial description to the Gemini API to get a more detailed response
-    prompt = f"describe: {initial_description}"
-    chat_session = model.start_chat()
-    response = chat_session.send_message(prompt)
-    return response.text
-
-
 def get_image_description(image_data: bytes) -> str:
     try:
         # Load the image from byte data
         image = Image.open(io.BytesIO(image_data))
 
-        # Preprocess the image for the model
-        inputs = processor(images=image, return_tensors="pt")
+        # Convert the image to a format that Gemini can accept
+        image = image.convert("RGB")
 
-        # Generate the description using the model (assuming it's a captioning model)
-        out = blip_model.generate(
-            **inputs,
-            max_length=150,  # Max length of the description
-            num_beams=5,     # Beam search for better quality
-            repetition_penalty=1.5  # Penalty for repetition
-        )
+        # Send the image to the Gemini model
+        response = model.generate_content(["Describe the image in detail.", image])
 
-        # Decode the output from token IDs to text
-        description = processor.decode(out[0], skip_special_tokens=True)
-        # print(description)  # Print for debugging purposes
-        return description
+        # Return the generated description
+        return response.text
     
     except Exception as e:
         print(f"Error processing image file: {e}")
         return "Error generating description"
-
 
 def extract_text_from_image(image_data: bytes) -> str:
     # Convert bytes to a PIL Image
@@ -148,8 +118,6 @@ def extract_text_from_image(image_data: bytes) -> str:
 
     return extracted_text
 
-
-# Function to generate a title from messages using gemini model
 def generate_title_from_messages(content: str) -> str:
     chat_session = model.start_chat()
     # Prompt Gemini for a single, brief, descriptive title
@@ -160,7 +128,6 @@ def generate_title_from_messages(content: str) -> str:
     title = response.text.strip().split('\n')[0]  # Only the first line of the response
     return title if title else "Untitled Session"
 
-# Function to extract text from PDF file
 def extract_text_from_pdf(pdf_path: str) -> str:
     text = ""
     try:
@@ -232,7 +199,6 @@ def extract_text_from_website(url: str) -> dict:
         "about_page_text": about_page_text
     }
 
-
 def preprocess_text(text: str) -> str:
     doc = nlp(text)
     tokens = [token.text for token in doc if not token.is_stop and not token.is_punct]
@@ -268,7 +234,6 @@ def format_code(code: str) -> str:
     # Basic formatting of code to maintain indentation
     return textwrap.dedent(code).strip()
 
-    
 def add_to_history(question: str, response: str):
     if len(chat_history) >= 10:  # Limit the history to the last 10 messages
         chat_history.pop(0)  # Remove the oldest entry to maintain size
@@ -304,26 +269,19 @@ async def upload_image(file: UploadFile = File(...)):
         # Read image content from the uploaded file
         image_data = await file.read()
 
-        # Get description from BLIP model
-        initial_description = get_image_description(image_data)
+        # Get description from Gemini model
+        description = get_image_description(image_data)
         
         # Extract text using OCR
         extracted_text = extract_text_from_image(image_data)
 
         # Combine descriptions
-
-        # # Get enhanced description from Gemini
-        # prompt = f"Based on the following image analysis, provide a detailed description:\n{combined_input}"
-        # response = model.generate_content(combined_input)
-        
-        # Format Gemini response
-        # enhanced_response = response.text.replace("•", "  *").replace("\n", "\n\n")  # Format list items
-        enhanced_response = f"Image description: {initial_description}. Extracted text: {extracted_text}"
+        enhanced_response = f"Image description: {description}. Extracted text: {extracted_text}"
 
         return {"response": enhanced_response}
     except Exception as e:
         print(f"Error processing image file: {e}")
-        raise HTTPException(status_code=500, detail="Failed to process image file.")
+        raise HTTPException(status_code=500, detail="Failed to process image file.")
 
 @app.post("/upload_pdf")
 async def upload_pdf(file: UploadFile = File(...)):
@@ -392,5 +350,4 @@ async def chat_endpoint(request: ChatRequest):
 
     except Exception as e:
         print(f"Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))  
-    
+        raise HTTPException(status_code=500, detail=str(e))
