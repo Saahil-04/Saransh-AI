@@ -94,34 +94,6 @@ def fetch_youtube_transcript(video_url: str) -> str:
 
 
 
-def get_video_id_from_url(url: str) -> str:
-    """Extract the YouTube video ID from the URL."""
-    parsed_url = urlparse(url)
-    if parsed_url.hostname in ['www.youtube.com', 'youtube.com']:
-        query = parsed_url.query
-        query_params = dict(qc.split("=") for qc in query.split("&"))
-        return query_params.get("v", "")
-    elif parsed_url.hostname == 'youtu.be':
-        return parsed_url.path.lstrip("/")
-    return None
-
-def fetch_youtube_transcript(video_url: str) -> str:
-    """Fetch the transcript of a YouTube video."""
-    video_id = get_video_id_from_url(video_url)
-    if not video_id:
-        raise HTTPException(status_code=400, detail="Invalid YouTube URL.")
-    
-    try:
-        transcript = YouTubeTranscriptApi.get_transcript(video_id)
-        # Combine transcript parts into a single text
-        full_transcript = " ".join([item["text"] for item in transcript])
-        return full_transcript
-    except TranscriptsDisabled:
-        raise HTTPException(status_code=400, detail="Transcripts are disabled for this video.")
-    except VideoUnavailable:
-        raise HTTPException(status_code=400, detail="Video unavailable or invalid ID.")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch transcript: {str(e)}")
 
 
 def enhance_description_with_gemini(initial_description: str) -> str:
