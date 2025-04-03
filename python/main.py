@@ -82,6 +82,14 @@ def fetch_youtube_transcript(video_url: str) -> str:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch transcript: {str(e)}")
 
+def enhance_description_with_gemini(initial_description: str) -> str:
+    # Send the initial description to the Gemini API to get a more detailed response
+    prompt = f"describe: {initial_description}"
+    chat_session = model.start_chat()
+    response = chat_session.send_message(prompt)
+    return response.text
+
+
 def get_image_description(image_data: bytes) -> str:
     try:
         # Load the image from byte data

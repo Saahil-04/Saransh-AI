@@ -25,6 +25,7 @@ import { StyledTextField, StyledButton, StyledGoogleButton } from "../../compone
 function LoginPage() {
   const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
+  const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
@@ -32,6 +33,7 @@ function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setSuccess(null)
 
     try {
       const response = await axios.post("http://localhost:3000/auth/login", {
@@ -43,7 +45,10 @@ function LoginPage() {
       localStorage.setItem("token", access_token)
       localStorage.setItem("sessionId", sessionId)
       localStorage.setItem("username", username)
-      navigate("/home")
+      setSuccess("Login successful! Redirecting...")
+      setTimeout(() => {
+        navigate("/home")
+      }, 2000)
     } catch (error) {
       console.error("Login error:", error)
       setError("Invalid email/username or password")
@@ -67,7 +72,7 @@ function LoginPage() {
             onClick={() => { navigate("/") }}
             component={motion.div}
             whileHover={{ scale: 1.05 }}
-            sx={{"&:hover": { cursor: "pointer" }}}
+            sx={{ "&:hover": { cursor: "pointer" } }}
           >
             SaranshAI
             <AutoAwesomeIcon sx={{ ml: 1 }} />
@@ -167,6 +172,12 @@ function LoginPage() {
             {error && (
               <Typography variant="body2" align="center" sx={{ color: "#ff6b6b", mt: 2 }}>
                 {error}
+              </Typography>
+            )}
+
+            {success && (
+              <Typography variant="body2" align="center" sx={{ color: "#4ecdc4", mt: 2 }}>
+                {success}
               </Typography>
             )}
           </Paper>

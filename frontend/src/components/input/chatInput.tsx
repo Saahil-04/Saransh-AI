@@ -61,7 +61,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, setInput, handleSend, hand
             </InputAdornment>
           ),
         }}
-        style={{ backgroundColor: "#444654", borderRadius: "25px" }}
+        style={{ backgroundColor: "rgb(45, 46, 97)", borderRadius: "25px" }}
       />
     </Box>
   )

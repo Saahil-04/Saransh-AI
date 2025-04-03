@@ -16,7 +16,7 @@ const ChatSuggestions: React.FC<ChatSuggestionsProps> = ({ suggestions, onSugges
           <Card
             onClick={() => onSuggestionClick(suggestion.title)}
             sx={{
-              backgroundColor: "#333",
+              background: 'linear-gradient(45deg,rgba(137, 85, 185, 0.53) 30%,rgba(99, 101, 241, 0.64) 100%)',
               color: "#fff",
               borderRadius: "15px",
               boxShadow: "0px 8px 15px rgba(0, 0, 0, 0.1)",
@@ -27,19 +27,33 @@ const ChatSuggestions: React.FC<ChatSuggestionsProps> = ({ suggestions, onSugges
               justifyContent: "center",
               width: "100%",
               maxWidth: "300px",
+
               "&:hover": {
                 scale: "1.10",
+                background: 'linear-gradient(45deg,rgba(137, 85, 185,0.77) 30%,rgba(99, 101, 241,0.77) 100%)',
+                boxShadow: "0px 5px 20px rgba(216, 135, 248, 0.79)",
                 transition: "all 0.5s ease",
-                border: "1px solid white"
 
               },
             }}
           >
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography variant="h6" sx={{ fontSize: "13px" }} gutterBottom>
+            <CardContent sx={{
+              textAlign: "center",
+              padding: '16px !important',
+            }}>
+              <Typography variant="h6" sx={{ 
+                  fontSize: "1rem",
+                  fontWeight: 500,
+                  mb: 1.5,
+                  lineHeight: 1.3,
+                  textShadow: '0 2px 4px rgba(0,0,0,0.2)'
+
+               }} gutterBottom>
                 {suggestion.title}
               </Typography>
-              <IconButton sx={{ color: "#fff", backgroundColor: "#444654", borderRadius: "50%" }} aria-label="edit">
+              <IconButton sx={{ 
+                color: "#fff", backgroundColor: "#202020", borderRadius: "50%" 
+                }} aria-label="edit">
                 <EditIcon />
               </IconButton>
             </CardContent>

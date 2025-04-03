@@ -12,8 +12,11 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  InputAdornment,
 } from '@mui/material';
 import ChatIcon from '@mui/icons-material/Chat';
+import SearchIcon from '@mui/icons-material/Search';
+import TextField from '@mui/material/TextField';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
@@ -38,6 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSessionSelect, onToggle }) => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch sessions from the backend
   useEffect(() => {
@@ -70,6 +74,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onSessionSelect, onToggle }) => {
 
     fetchSessions();
   }, []);
+
+  const filteredSessions = sessions.filter(session =>
+    session.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleToggle = () => {
     setIsOpen(!isOpen);
@@ -176,14 +184,60 @@ const Sidebar: React.FC<SidebarProps> = ({ onSessionSelect, onToggle }) => {
         </IconButton>
       </Box>
       {isOpen && (
-        <>
-          <Typography variant="h6" sx={{ px: 2, mb: 2 }}>Chat Sessions</Typography>
+        <Box sx={{ p: 2 }}>
+          <TextField
+            fullWidth
+            variant="outlined"
+            placeholder="Search sessions..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            sx={{
+              mb: 3,
+              '& .MuiOutlinedInput-root': {
+                color: 'white',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  borderColor: '#a855f7',
+                },
+                '&.Mui-focused': {
+                  borderColor: '#a855f7',
+                  boxShadow: '0 0 0 2px rgba(168,85,247,0.2)'
+                }
+              },
+              '& .MuiInputBase-input': {
+                py: 1.5,
+              }
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: 'rgba(255,255,255,0.5)', mr: 1 }} />
+                </InputAdornment>
+              ),
+            }}
+          />
           <IconButton
             color="primary"
-            sx={{ mb: 2, mx: 2, backgroundColor: 'rgba(168,85,247,0.2)' }}
+            sx={{
+              mb: 3,
+              width: '100%',
+              py: 1.5,
+              background: 'linear-gradient(45deg, #a855f7 30%, #6366f1 100%)',
+              '&:hover': {
+                transform: 'scale(1.01)',
+                boxShadow: '0 4px 15px rgba(168, 85, 247, 0.4)',
+              },
+              transition: 'all 0.3s ease',
+              borderRadius: '10px'
+            }}
             onClick={handleCreateSession}
           >
-            <AddIcon />
+            <AddIcon sx={{ fontSize: '1.5rem' }} />
+            <Typography variant="button" sx={{ ml: 1, fontWeight: 600 }}>
+              New Session
+            </Typography>
           </IconButton>
 
           {loading ? (
@@ -195,10 +249,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onSessionSelect, onToggle }) => {
           ) : (
             <Box
               sx={{
-                maxHeight: '70vh', // Adjust the height as needed
+                maxHeight: '75vh', // Adjust the height as needed
                 overflowY: 'auto', // Enables vertical scrolling
                 overflowX: 'hidden', // Hides horizontal scrolling
-                px: 2, // Adds padding for the scrollbar
+                px: 1, // Adds padding for the scrollbar
                 "&::-webkit-scrollbar": {
                   width: "8px",
                 },
@@ -211,12 +265,112 @@ const Sidebar: React.FC<SidebarProps> = ({ onSessionSelect, onToggle }) => {
                 },
               }}
             >
-              <List>
-                {sessions.map((session) => (
+              <List disablePadding>
+
+                {filteredSessions.length === 0 ? (
+                  <Box sx={{
+                    textAlign: 'center',
+                    py: 3,
+                    color: 'rgba(255,255,255,0.5)'
+                  }}>
+                    No matching sessions found
+                  </Box>
+                ) : (
+                  filteredSessions.map((session) => (
+                    // ... existing ListItem component
+                    <ListItem
+                      key={session.id}
+                      button
+                      onClick={() => onSessionSelect(session.id)}
+                      sx={{
+                        mb: 1,
+                        borderRadius: '8px',
+                        transition: 'all 0.2s ease',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        scale: '1.05',
+                        '&:hover': {
+                          background: 'rgba(168, 85, 247, 0.1)',
+                          // background: 'rgba(255, 255, 255, 0.03)',
+                          // transform: 'translateX(5px)'
+                        },
+                        '& .MuiListItemSecondaryAction-root': {
+                          right: '-20px',
+                          transition: 'all 0.2s ease',
+                          opacity: 0
+                        },
+                        '&:hover .MuiListItemSecondaryAction-root': {
+                          right: '8px',
+                          opacity: 1
+                        }
+                      }}
+                      secondaryAction={
+                        <IconButton
+                          edge="end"
+                          aria-label="delete"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevents onSessionSelect from being triggered
+                            handleOpenDialog(session.id);
+                          }}
+                          sx={{
+                            '&:hover': {
+                              color: '#a855f7',
+                              background: 'rgba(168, 85, 247, 0.1)'
+                            }
+                          }}
+                        >
+                          <DeleteIcon sx={{
+                            fontSize: '1.2rem',
+                            color: "white",
+                          }} />
+                        </IconButton>
+                      }
+                    >
+                      <ChatIcon sx={{
+                        mr: 2,
+                        color: '#a855f7',
+                        fontSize: '1.2rem'
+                      }} />
+                      <ListItemText primary={session.name}
+                        primaryTypographyProps={{
+                          sx: {
+                            fontSize: '0.8rem',
+                            fontWeight: 500,
+                            letterSpacing: '0.2px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          },
+                        }}
+                      />
+                    </ListItem>
+                  ))
+                )}
+                {/* {sessions.map((session) => (
                   <ListItem
                     key={session.id}
                     button
                     onClick={() => onSessionSelect(session.id)}
+                    sx={{
+                      mb: 1,
+                      borderRadius: '8px',
+                      transition: 'all 0.2s ease',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      '&:hover': {
+                        background: 'rgba(168, 85, 247, 0.1)',
+                        // background: 'rgba(255, 255, 255, 0.03)',
+                        // transform: 'translateX(5px)'
+                        scale: '1.05',
+                      },
+                      '& .MuiListItemSecondaryAction-root': {
+                        right: '-20px',
+                        transition: 'all 0.2s ease',
+                        opacity: 0
+                      },
+                      '&:hover .MuiListItemSecondaryAction-root': {
+                        right: '8px',
+                        opacity: 1
+                      }
+                    }}
                     secondaryAction={
                       <IconButton
                         edge="end"
@@ -225,33 +379,49 @@ const Sidebar: React.FC<SidebarProps> = ({ onSessionSelect, onToggle }) => {
                           e.stopPropagation(); // Prevents onSessionSelect from being triggered
                           handleOpenDialog(session.id);
                         }}
+                        sx={{
+                          '&:hover': {
+                            color: '#a855f7',
+                            background: 'rgba(168, 85, 247, 0.1)'
+                          }
+                        }}
                       >
                         <DeleteIcon sx={{
+                          fontSize: '1.2rem',
                           color: "white",
                         }} />
                       </IconButton>
                     }
                   >
-                    <ChatIcon sx={{ mr: 2 }} />
+                    <ChatIcon sx={{
+                      mr: 2,
+                      color: '#a855f7',
+                      fontSize: '1.2rem'
+                    }} />
                     <ListItemText primary={session.name}
                       primaryTypographyProps={{
                         sx: {
                           fontSize: '0.8rem',
+                          fontWeight: 500,
+                          letterSpacing: '0.2px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
                         },
                       }}
                     />
                   </ListItem>
-                ))}
+                ))} */}
               </List>
             </Box>
           )}
-        </>
+        </Box>
       )}
 
       <Dialog open={open} onClose={handleCloseDialog}
         PaperProps={{
           sx: {
-            backgroundColor: '#212121', // Dark background color
+            backgroundColor: '#1a1a2e', // Dark background color
             color: '#fff', // White text color
             borderRadius: 2, // Slightly rounded corners
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)' // Soft shadow for a modern look
@@ -263,7 +433,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onSessionSelect, onToggle }) => {
           <Button onClick={handleCloseDialog} color="primary" variant="outlined" sx={{ color: '#fff', borderColor: '#555', borderRadius: 5 }}>
             Cancel
           </Button>
-          <Button onClick={handleConfirmDelete} color="secondary" variant="contained" sx={{ backgroundColor: '#E34234', borderRadius: 5 }}>
+          <Button onClick={handleConfirmDelete} color="secondary" variant="contained"
+            sx={{
+              backgroundColor: 'tomato',
+              borderRadius: 5
+            }}>
             Delete
           </Button>
         </DialogActions>

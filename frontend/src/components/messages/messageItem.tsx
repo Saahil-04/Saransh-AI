@@ -3,7 +3,9 @@ import { ListItem, ListItemText } from "@mui/material"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import AttachFileIcon from "@mui/icons-material/AttachFile"
+import CloseIcon from "@mui/icons-material/Close"
 import type { Message } from "../../types"
+import { useState ,useEffect} from "react"
 
 interface MessageItemProps {
   message: Message
@@ -12,6 +14,22 @@ interface MessageItemProps {
 }
 
 const MessageItem: React.FC<MessageItemProps> = ({ message, isLast, messageEndRef }) => {
+
+  const [isImageExpanded,setIsImageExpanded] = useState(false);
+
+    // Prevent body scroll when modal is open
+    useEffect(() => {
+      if (isImageExpanded) {
+        document.body.style.overflow = "hidden"
+      } else {
+        document.body.style.overflow = "unset"
+      }
+  
+      return () => {
+        document.body.style.overflow = "unset"
+      }
+    }, [isImageExpanded])
+
   return (
     <ListItem
       ref={isLast ? messageEndRef : null}
@@ -49,11 +67,12 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isLast, messageEndRe
                 src={message.imageUrl || "/placeholder.svg"}
                 alt={message.text}
                 style={{
-                  width: "200px",
-                  height: "100px",
+                  width: "300px",
+                  height: "200px",
                   objectFit: "cover",
                   borderRadius: "10px",
                 }}
+                onClick ={()=>setIsImageExpanded(true)}
               />
             </div>
           ) : message.text && message.text.startsWith("📄") ? (
@@ -100,6 +119,61 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isLast, messageEndRe
           },
         }}
       />
+      {/* Image expansion modal */}
+      {isImageExpanded && (
+        <div
+          onClick={() => setIsImageExpanded(false)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.9)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "relative",
+              maxWidth: "90%",
+              maxHeight: "90%",
+            }}
+          >
+            <button
+              onClick={() => setIsImageExpanded(false)}
+              style={{
+                position: "absolute",
+                top: "10px",
+                right: "10px",
+                backgroundColor: "#202020",
+                opacity: 0.8,
+                border: "none",
+                color: "white",
+                cursor: "pointer",
+                zIndex: 10000,
+                padding: "5px",
+              }}
+            >
+              <CloseIcon style={{ fontSize: "30px" }} />
+            </button>
+            <img
+              src={message.imageUrl || "/placeholder.svg"}
+              alt={message.text}
+              style={{
+                maxWidth: "100%",
+                maxHeight: "90vh",
+                objectFit: "contain",
+                borderRadius: "10px",
+              }}
+            />
+          </div>
+        </div>
+      )}
     </ListItem>
   )
 }
