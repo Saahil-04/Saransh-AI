@@ -40,7 +40,11 @@ api_key = "AIzaSyDRq-ksyhLOI-T4OgkgbvE_Ik6QlqYB9Ck"
 genai.configure(api_key=api_key)
 
 # Initialize the Gemini model
-model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+# model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+model = genai.GenerativeModel(model_name="gemini-2.0-flash")
+# model = genai.GenerativeModel(model_name="gemini-2.0-flash-lite")
+# model = genai.GenerativeModel(model_name="gemini-2.5-pro-exp-03-25")
+
 
 # Load spaCy model
 nlp = spacy.load("en_core_web_sm")
